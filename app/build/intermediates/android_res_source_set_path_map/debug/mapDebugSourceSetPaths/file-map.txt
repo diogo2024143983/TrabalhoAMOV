@@ -1,8 +1,0 @@
-pt.isec.amov.cityfix.app-pngs-0 C:\Users\user\Documents\uni\amov\TrabalhoAMOV\app\build\generated\res\pngs\debug
-pt.isec.amov.cityfix.app-updated_navigation_xml-1 C:\Users\user\Documents\uni\amov\TrabalhoAMOV\app\build\generated\updated_navigation_xml\debug
-pt.isec.amov.cityfix.app-packageDebugResources-2 C:\Users\user\Documents\uni\amov\TrabalhoAMOV\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
-pt.isec.amov.cityfix.app-packageDebugResources-3 C:\Users\user\Documents\uni\amov\TrabalhoAMOV\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
-pt.isec.amov.cityfix.app-debug-4 C:\Users\user\Documents\uni\amov\TrabalhoAMOV\app\build\intermediates\merged_res\debug\mergeDebugResources
-pt.isec.amov.cityfix.app-debug-5 C:\Users\user\Documents\uni\amov\TrabalhoAMOV\app\src\debug\res
-pt.isec.amov.cityfix.app-main-6 C:\Users\user\Documents\uni\amov\TrabalhoAMOV\app\src\main\res
-gradleHome-0 C:\Users\user\.gradle
