@@ -31,6 +31,18 @@ data class Incident(
     val public: Boolean = true,
     val author: String,
     val location: String,
+    val ownerId: String = "",
     val hasMedia: Boolean = true,
+    val mediaUrl: String = "",
     val supporters: Int = 1
+)
+
+@Serializable
+data class IncidentMessage(
+    val id: String,
+    val incidentId: String,
+    val authorId: String,
+    val authorName: String,
+    val text: String,
+    val createdAt: Long = System.currentTimeMillis()
 )

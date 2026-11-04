@@ -1,52 +1,121 @@
 package pt.isec.amov.cityfix.viewmodel
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import android.app.Application
+import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import com.google.firebase.firestore.ListenerRegistration
+import pt.isec.amov.cityfix.data.cloud.CityFixFirebaseRepository
+import pt.isec.amov.cityfix.data.local.CityFixLocalRepository
 import pt.isec.amov.cityfix.model.CityFixUser
 import pt.isec.amov.cityfix.model.Incident
 import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.model.IncidentStatus
+import pt.isec.amov.cityfix.model.IncidentMessage
 import pt.isec.amov.cityfix.model.UserRole
 
 data class CityFixUiState(
     val user: CityFixUser = CityFixUser(name = "Anonymous citizen"),
     val incidents: List<Incident> = sampleIncidents,
     val selectedIncident: Incident? = null,
+    val messages: List<IncidentMessage> = emptyList(),
     val message: String? = null,
     val loading: Boolean = false
 )
 
-class CityFixViewModel : ViewModel() {
-    private val _state = MutableStateFlow(CityFixUiState())
+class CityFixViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = CityFixLocalRepository(application)
+    private val cloudRepository = CityFixFirebaseRepository(application)
+    private var incidentsListener: ListenerRegistration? = null
+    private var messagesListener: ListenerRegistration? = null
+    private val _state = MutableStateFlow(
+        CityFixUiState(
+            user = repository.loadUser() ?: CityFixUser(name = "Anonymous citizen"),
+            incidents = repository.loadIncidents(sampleIncidents)
+        )
+    )
     val state: StateFlow<CityFixUiState> = _state.asStateFlow()
 
-    fun signIn(name: String, email: String, operator: Boolean) {
+    init {
+        incidentsListener = cloudRepository.observeIncidents(
+            onChanged = { incidents ->
+                _state.update { it.copy(incidents = incidents, message = null) }
+                repository.saveIncidents(incidents)
+            },
+            onError = ::showCloudError
+        )
+    }
+
+    fun signIn(
+        name: String,
+        email: String,
+        password: String,
+        onComplete: (Boolean) -> Unit
+    ) {
+        cloudRepository.signInOrRegister(
+            email = email.trim(),
+            password = password,
+            onSuccess = {
+                updateSignedInUser(name, email)
+                onComplete(true)
+            },
+            onError = {
+                showCloudError(it)
+                onComplete(false)
+            }
+        )
+    }
+
+    private fun updateSignedInUser(name: String, email: String) {
         _state.update {
             it.copy(
                 user = CityFixUser(
                     name = name.trim().ifBlank { "CityFix user" },
                     email = email.trim(),
-                    role = if (operator) UserRole.OPERATOR else UserRole.CITIZEN,
-                    active = operator
+                    role = UserRole.CITIZEN,
+                    active = true
                 ),
                 message = null
             )
         }
+        repository.saveUser(_state.value.user)
+        cloudRepository.saveUser(_state.value.user, ::showCloudError)
+        cloudRepository.registerCurrentMessagingToken(::showCloudError)
     }
 
     fun continueAsGuest() {
         _state.update { it.copy(user = CityFixUser("Anonymous citizen"), message = null) }
+        repository.clearUser()
     }
 
     fun signOut() = continueAsGuest()
 
     fun selectIncident(incident: Incident?) {
-        _state.update { it.copy(selectedIncident = incident) }
+        messagesListener?.remove()
+        messagesListener = incident?.let {
+            cloudRepository.observeMessages(it.id, { messages ->
+                _state.update { state -> state.copy(messages = messages) }
+            }, ::showCloudError)
+        }
+        _state.update { it.copy(selectedIncident = incident, messages = emptyList()) }
+    }
+
+    fun sendMessage(text: String) {
+        val incident = _state.value.selectedIncident ?: return
+        val cleanText = text.trim()
+        if (cleanText.isBlank()) return
+        val message = IncidentMessage(
+            id = UUID.randomUUID().toString(),
+            incidentId = incident.id,
+            authorId = cloudRepository.currentUserId.orEmpty(),
+            authorName = _state.value.user.name,
+            text = cleanText
+        )
+        cloudRepository.sendMessage(message, ::showCloudError)
     }
 
     fun addIncident(
@@ -55,15 +124,23 @@ class CityFixViewModel : ViewModel() {
         category: String,
         situation: IncidentSituation,
         public: Boolean,
-        location: String
-    ): Boolean {
+        location: String,
+        mediaUri: Uri?,
+        onComplete: (Boolean) -> Unit
+    ) {
+        if (mediaUri == null) {
+            _state.update { it.copy(message = "Seleciona uma fotografia ou vídeo antes de submeter.") }
+            onComplete(false)
+            return
+        }
         val duplicate = _state.value.incidents.any {
             it.category.equals(category, true) &&
                 it.situation == situation &&
                 it.location.equals(location, true)
         }
+        val incidentId = UUID.randomUUID().toString()
         val incident = Incident(
-            id = UUID.randomUUID().toString(),
+            id = incidentId,
             title = title.trim(),
             description = description.trim(),
             category = category.trim(),
@@ -71,10 +148,27 @@ class CityFixViewModel : ViewModel() {
             public = public,
             author = _state.value.user.name,
             location = location.trim(),
-            supporters = if (duplicate) 2 else 1
+            ownerId = cloudRepository.currentUserId.orEmpty(),
+            supporters = if (duplicate) 2 else 1,
+            hasMedia = false
         )
-        _state.update { it.copy(incidents = listOf(incident) + it.incidents) }
-        return duplicate
+        _state.update { it.copy(loading = true, message = null) }
+        cloudRepository.uploadMedia(
+            uri = mediaUri,
+            incidentId = incidentId,
+            onSuccess = { mediaUrl ->
+                val uploaded = incident.copy(hasMedia = true, mediaUrl = mediaUrl)
+                _state.update { it.copy(incidents = listOf(uploaded) + it.incidents, loading = false) }
+                repository.saveIncidents(_state.value.incidents)
+                cloudRepository.saveIncidents(_state.value.incidents, ::showCloudError)
+                onComplete(duplicate)
+            },
+            onError = {
+                showCloudError(it)
+                _state.update { state -> state.copy(loading = false) }
+                onComplete(false)
+            }
+        )
     }
 
     fun advanceStatus(incident: Incident) {
@@ -91,6 +185,18 @@ class CityFixViewModel : ViewModel() {
                 selectedIncident = incident.copy(status = next)
             )
         }
+        repository.saveIncidents(_state.value.incidents)
+        cloudRepository.saveIncidents(_state.value.incidents, ::showCloudError)
+    }
+
+    override fun onCleared() {
+        incidentsListener?.remove()
+        messagesListener?.remove()
+        super.onCleared()
+    }
+
+    private fun showCloudError(error: Exception) {
+        _state.update { it.copy(message = "Sincronização cloud indisponível: ${error.localizedMessage}") }
     }
 }
 
