@@ -104,9 +104,9 @@ private fun CityFixApp(vm: CityFixViewModel = viewModel()) {
             TopAppBar(
                 title = {
                     Column {
-                        Text(if (screen == Screen.DETAIL) "Incident details" else "CityFix", fontWeight = FontWeight.SemiBold)
+                        Text(if (screen == Screen.DETAIL) "Detalhes da ocorrência" else "CityFix", fontWeight = FontWeight.SemiBold)
                         if (screen != Screen.DETAIL) Text(
-                            if (state.user.role == UserRole.ANONYMOUS) "Neighbourhood reports" else "Your community, together",
+                            if (state.user.role == UserRole.ANONYMOUS) "Ocorrências da comunidade" else "A sua comunidade, em conjunto",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -115,24 +115,24 @@ private fun CityFixApp(vm: CityFixViewModel = viewModel()) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 navigationIcon = {
                     if (screen == Screen.DETAIL) IconButton({ screen = Screen.INCIDENTS }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.Default.ArrowBack, "Voltar")
                     }
                 },
                 actions = {
                     if (state.user.role == UserRole.ANONYMOUS) IconButton({ screen = Screen.LOGIN }) {
-                        Icon(Icons.Default.Login, "Sign in")
+                        Icon(Icons.Default.Login, "Iniciar sessão")
                     } else IconButton({ vm.signOut(); screen = Screen.DASHBOARD }) {
-                        Icon(Icons.Default.Logout, "Sign out")
+                        Icon(Icons.Default.Logout, "Terminar sessão")
                     }
                 }
             )
         },
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
-                NavigationBarItem(screen == Screen.DASHBOARD, { screen = Screen.DASHBOARD }, { Icon(Icons.Default.Home, "Dashboard") }, label = { Text("Dashboard") })
-                NavigationBarItem(screen == Screen.INCIDENTS, { screen = Screen.INCIDENTS }, { Icon(Icons.Default.List, "Incidents") }, label = { Text("Incidents") })
-                NavigationBarItem(screen == Screen.PROFILE, { screen = Screen.PROFILE }, { Icon(Icons.Default.Person, "Profile") }, label = { Text("Profile") })
-                if (state.user.role == UserRole.OPERATOR) NavigationBarItem(screen == Screen.OPERATOR, { screen = Screen.OPERATOR }, { Icon(Icons.Default.Check, "Management") }, label = { Text("Manage") })
+                NavigationBarItem(screen == Screen.DASHBOARD, { screen = Screen.DASHBOARD }, { Icon(Icons.Default.Home, "Início") }, label = { Text("Início") })
+                NavigationBarItem(screen == Screen.INCIDENTS, { screen = Screen.INCIDENTS }, { Icon(Icons.Default.List, "Ocorrências") }, label = { Text("Ocorrências") })
+                NavigationBarItem(screen == Screen.PROFILE, { screen = Screen.PROFILE }, { Icon(Icons.Default.Person, "Perfil") }, label = { Text("Perfil") })
+                if (state.user.role == UserRole.OPERATOR) NavigationBarItem(screen == Screen.OPERATOR, { screen = Screen.OPERATOR }, { Icon(Icons.Default.Check, "Gestão") }, label = { Text("Gestão") })
             }
         },
     ) { padding ->
@@ -186,13 +186,13 @@ private fun DashboardScreen(incidents: List<Incident>, role: UserRole, onInciden
             ) {
                 Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        if (role == UserRole.ANONYMOUS) "Make your city better" else "Good to see you",
+                        if (role == UserRole.ANONYMOUS) "Melhore a sua cidade" else "É bom voltar a vê-lo",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
-                        if (role == UserRole.ANONYMOUS) "See what needs attention nearby and follow local progress."
-                        else "Report an issue or follow the ones that matter to you.",
+                        if (role == UserRole.ANONYMOUS) "Veja o que precisa de atenção e acompanhe o progresso local."
+                        else "Registe uma ocorrência ou acompanhe as que são importantes para si.",
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
                     )
                 }
@@ -201,8 +201,8 @@ private fun DashboardScreen(incidents: List<Incident>, role: UserRole, onInciden
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 StatCard("Total", incidents.size.toString(), MaterialTheme.colorScheme.primaryContainer, Modifier.weight(1f))
-                StatCard("Active", incidents.count { it.status != IncidentStatus.CLOSED }.toString(), MaterialTheme.colorScheme.secondaryContainer, Modifier.weight(1f))
-                StatCard("Avg. repair", "2.4 d", Color(0xFFF4E4C8), Modifier.weight(1f))
+                StatCard("Ativas", incidents.count { it.status != IncidentStatus.CLOSED }.toString(), MaterialTheme.colorScheme.secondaryContainer, Modifier.weight(1f))
+                StatCard("Reparação média", "2,4 d", Color(0xFFF4E4C8), Modifier.weight(1f))
             }
         }
         item {
@@ -212,9 +212,9 @@ private fun DashboardScreen(incidents: List<Incident>, role: UserRole, onInciden
                 shape = MaterialTheme.shapes.medium
             ) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Open reports", style = MaterialTheme.typography.titleMedium)
-                    Text("Browse active issues and see how your municipality is responding.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Button(onClick = onIncidents) { Text("Explore incidents") }
+                    Text("Ocorrências abertas", style = MaterialTheme.typography.titleMedium)
+                    Text("Consulte problemas ativos e veja como o seu município está a responder.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Button(onClick = onIncidents) { Text("Explorar ocorrências") }
                 }
             }
         }
@@ -222,7 +222,7 @@ private fun DashboardScreen(incidents: List<Incident>, role: UserRole, onInciden
             OutlinedButton(onClick = onNew, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.size(8.dp))
-                Text("Report an incident")
+                Text("Registar ocorrência")
             }
         }
     }
@@ -241,8 +241,8 @@ private fun DashboardScreen(incidents: List<Incident>, role: UserRole, onInciden
 private fun IncidentListScreen(incidents: List<Incident>, onSelect: (Incident) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
-            Text("Incidents", style = MaterialTheme.typography.headlineSmall)
-            Text("Active reports from the community", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Ocorrências", style = MaterialTheme.typography.headlineSmall)
+            Text("Ocorrências ativas da comunidade", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         items(incidents, key = { it.id }, contentType = { "incident" }) { incident ->
             IncidentCard(incident, onSelect)
@@ -262,9 +262,9 @@ private fun IncidentListScreen(incidents: List<Incident>, onSelect: (Incident) -
                 Text(incident.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 StatusChip(incident.status)
             }
-            Text("${incident.category}  •  ${incident.situation.name.lowercase().replace('_', ' ')}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("${incident.category}  •  ${incidentSituationLabel(incident.situation)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(incident.description, maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant, overflow = TextOverflow.Ellipsis)
-            Text("${incident.supporters} supporters", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text("${incident.supporters} apoiantes", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -277,7 +277,7 @@ private fun StatusChip(status: IncidentStatus) {
         shape = RoundedCornerShape(50),
     ) {
         Text(
-            status.name.replace('_', ' ').lowercase(),
+            incidentStatusLabel(status),
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
         )
@@ -291,27 +291,27 @@ private fun StatusChip(status: IncidentStatus) {
         Text(incident.title, style = MaterialTheme.typography.headlineSmall)
         Text(incident.description)
         HorizontalDivider()
-        Text("Category: ${incident.category}")
-        Text("Situation: ${incident.situation.name.lowercase().replace('_', ' ')}")
-        Text("Status: ${incident.status.name.replace('_', ' ')}")
-        Text("Location: ${incident.location}")
-        Text("Media attached: ${if (incident.hasMedia) "yes" else "no"}")
+        Text("Categoria: ${incident.category}")
+        Text("Situação: ${incidentSituationLabel(incident.situation)}")
+        Text("Estado: ${incidentStatusLabel(incident.status)}")
+        Text("Localização: ${incident.location}")
+        Text("Anexo: ${if (incident.hasMedia) "sim" else "não"}")
         if (incident.mediaUrl.isNotBlank()) {
             OutlinedButton({
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(incident.mediaUrl)))
-            }) { Text("Open attached media") }
+            }) { Text("Abrir anexo") }
         }
-        if (operator && incident.status != IncidentStatus.CLOSED) Button({ advance(incident) }) { Text("Advance ticket status") }
-        Text("Messages with municipal services", style = MaterialTheme.typography.titleMedium)
+        if (operator && incident.status != IncidentStatus.CLOSED) Button({ advance(incident) }) { Text("Avançar estado") }
+        Text("Mensagens com os serviços municipais", style = MaterialTheme.typography.titleMedium)
         messages.forEach { message ->
             Text("${message.authorName}: ${message.text}", style = MaterialTheme.typography.bodyMedium)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(messageText, { messageText = it }, modifier = Modifier.weight(1f), placeholder = { Text("Type a message...") })
+            OutlinedTextField(messageText, { messageText = it }, modifier = Modifier.weight(1f), placeholder = { Text("Escreva uma mensagem...") })
             Button({
                 sendMessage(messageText)
                 messageText = ""
-            }, modifier = Modifier.padding(start = 8.dp)) { Text("Send") }
+            }, modifier = Modifier.padding(start = 8.dp)) { Text("Enviar") }
         }
     }
 }
@@ -319,7 +319,7 @@ private fun StatusChip(status: IncidentStatus) {
 @Composable
 private fun NewIncidentScreen(onCancel: () -> Unit, onSubmit: (String, String, String, IncidentSituation, Boolean, String, Uri?) -> Unit) {
     var title by remember { mutableStateOf("") }; var description by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Public roads") }; var location by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("Estradas públicas") }; var location by remember { mutableStateOf("") }
     var situation by remember { mutableStateOf(IncidentSituation.DAMAGE) }; var public by remember { mutableStateOf(true) }
     var mediaUri by remember { mutableStateOf<Uri?>(null) }
     var locationMessage by remember { mutableStateOf("") }
@@ -335,52 +335,73 @@ private fun NewIncidentScreen(onCancel: () -> Unit, onSubmit: (String, String, S
             Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
         if (!hasPermission) {
-            locationMessage = "Location permission is required."
+            locationMessage = "É necessária permissão de localização."
             return
         }
-        locationMessage = "Getting current location..."
+        locationMessage = "A obter a localização atual..."
         locationClient.lastLocation
             .addOnSuccessListener { currentLocation ->
                 if (currentLocation == null) {
-                    locationMessage = "Location unavailable. Enter it manually."
+                    locationMessage = "Localização indisponível. Introduza-a manualmente."
                 } else {
                     location = "${currentLocation.latitude}, ${currentLocation.longitude}"
-                    locationMessage = "Current location selected."
+                    locationMessage = "Localização atual selecionada."
                 }
             }
             .addOnFailureListener {
-                locationMessage = "Could not read location. Enter it manually."
+                locationMessage = "Não foi possível ler a localização. Introduza-a manualmente."
             }
     }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Report incident", style = MaterialTheme.typography.headlineSmall)
-        OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Title") }, singleLine = true)
-        OutlinedTextField(description, { description = it }, Modifier.fillMaxWidth(), label = { Text("Description") }, minLines = 3)
-        OutlinedTextField(category, { category = it }, Modifier.fillMaxWidth(), label = { Text("Category") }, singleLine = true)
-        OutlinedTextField(location, { location = it }, Modifier.fillMaxWidth(), label = { Text("Location") }, singleLine = true)
+        Text("Registar ocorrência", style = MaterialTheme.typography.headlineSmall)
+        OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Título") }, singleLine = true)
+        OutlinedTextField(description, { description = it }, Modifier.fillMaxWidth(), label = { Text("Descrição") }, minLines = 3)
+        OutlinedTextField(category, { category = it }, Modifier.fillMaxWidth(), label = { Text("Categoria") }, singleLine = true)
+        OutlinedTextField(location, { location = it }, Modifier.fillMaxWidth(), label = { Text("Localização") }, singleLine = true)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedButton(::useCurrentLocation) { Text("Use current location") }
+            OutlinedButton(::useCurrentLocation) { Text("Usar localização atual") }
             if (locationMessage.isNotBlank()) Text(locationMessage, Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelSmall)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) { IncidentSituation.entries.forEach { FilterChip(situation == it, { situation = it }, label = { Text(it.name.lowercase()) }) } }
-        Row(verticalAlignment = Alignment.CenterVertically) { FilterChip(public, { public = !public }, label = { Text(if (public) "Public" else "Private") }); Spacer(Modifier.padding(4.dp)); OutlinedButton({ mediaPicker.launch("image/* video/*") }) { Text(if (mediaUri != null) "Media selected" else "Attach photo/video") } }
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) { IncidentSituation.entries.forEach { FilterChip(situation == it, { situation = it }, label = { Text(incidentSituationLabel(it)) }) } }
+        Row(verticalAlignment = Alignment.CenterVertically) { FilterChip(public, { public = !public }, label = { Text(if (public) "Pública" else "Privada") }); Spacer(Modifier.padding(4.dp)); OutlinedButton({ mediaPicker.launch("image/* video/*") }) { Text(if (mediaUri != null) "Anexo selecionado" else "Anexar foto/vídeo") } }
         Spacer(Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onCancel, Modifier.weight(1f)) { Text("Cancel") }
-            Button({ if (title.isNotBlank() && description.isNotBlank() && location.isNotBlank() && mediaUri != null) onSubmit(title, description, category, situation, public, location, mediaUri) }, Modifier.weight(1f)) { Text("Submit") }
+            OutlinedButton(onCancel, Modifier.weight(1f)) { Text("Cancelar") }
+            Button({ if (title.isNotBlank() && description.isNotBlank() && location.isNotBlank() && mediaUri != null) onSubmit(title, description, category, situation, public, location, mediaUri) }, Modifier.weight(1f)) { Text("Submeter") }
         }
     }
 }
 
 @Composable private fun ProfileScreen(user: pt.isec.amov.cityfix.model.CityFixUser, login: () -> Unit) {
-    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { Text("Profile", style = MaterialTheme.typography.headlineSmall); Text("Name: ${user.name}"); Text("Email: ${user.email.ifBlank { "Not authenticated" }}"); Text("Role: ${user.role.name.lowercase()}"); if (user.role == UserRole.ANONYMOUS) Button(login) { Text("Sign in or register") } }
+    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { Text("Perfil", style = MaterialTheme.typography.headlineSmall); Text("Nome: ${user.name}"); Text("Email: ${user.email.ifBlank { "Não autenticado" }}"); Text("Função: ${userRoleLabel(user.role)}"); if (user.role == UserRole.ANONYMOUS) Button(login) { Text("Iniciar sessão ou registar") } }
+}
+
+private fun incidentSituationLabel(situation: IncidentSituation): String = when (situation) {
+    IncidentSituation.DAMAGE -> "Danos"
+    IncidentSituation.BREAKDOWN -> "Avaria"
+    IncidentSituation.DESTRUCTION -> "Destruição"
+    IncidentSituation.THEFT -> "Furto"
+}
+
+private fun incidentStatusLabel(status: IncidentStatus): String = when (status) {
+    IncidentStatus.OPEN -> "Aberta"
+    IncidentStatus.INFORMATION_REQUEST -> "Informação solicitada"
+    IncidentStatus.IN_RESOLUTION -> "Em resolução"
+    IncidentStatus.RESOLVED -> "Resolvida"
+    IncidentStatus.CLOSED -> "Fechada"
+}
+
+private fun userRoleLabel(role: UserRole): String = when (role) {
+    UserRole.ANONYMOUS -> "Anónimo"
+    UserRole.CITIZEN -> "Cidadão"
+    UserRole.OPERATOR -> "Operador"
 }
 
 @Composable private fun OperatorScreen(incidents: List<Incident>, advance: (Incident) -> Unit) {
-    LazyColumn(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { item { Text("Operational management", style = MaterialTheme.typography.headlineSmall) }; items(incidents) { IncidentCard(it) { advance(it) } } }
+    LazyColumn(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { item { Text("Gestão operacional", style = MaterialTheme.typography.headlineSmall) }; items(incidents) { IncidentCard(it) { advance(it) } } }
 }
 
 @Composable private fun LoginScreen(onBack: () -> Unit, onLogin: (String, String, String) -> Unit, onGuest: () -> Unit) {
     var name by remember { mutableStateOf("") }; var email by remember { mutableStateOf("") }; var password by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { Text("CityFix authentication", style = MaterialTheme.typography.headlineSmall); OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name") }); OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text("Email") }); OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text("Password") }, visualTransformation = PasswordVisualTransformation()); Button({ if (name.isNotBlank() && email.contains("@") && password.length >= 6) onLogin(name, email, password) }, Modifier.fillMaxWidth()) { Text("Sign in / Register") }; OutlinedButton(onGuest, Modifier.fillMaxWidth()) { Text("Continue as anonymous citizen") }; Text("A conta é autenticada pelo Firebase. O acesso de operador é atribuído pela administração.", style = MaterialTheme.typography.bodySmall); OutlinedButton(onBack) { Text("Back") } }
+    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { Text("Autenticação CityFix", style = MaterialTheme.typography.headlineSmall); OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Nome") }); OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text("Email") }); OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text("Palavra-passe") }, visualTransformation = PasswordVisualTransformation()); Button({ if (name.isNotBlank() && email.contains("@") && password.length >= 6) onLogin(name, email, password) }, Modifier.fillMaxWidth()) { Text("Iniciar sessão / Registar") }; OutlinedButton(onGuest, Modifier.fillMaxWidth()) { Text("Continuar como cidadão anónimo") }; Text("A conta é autenticada pelo Firebase. O acesso de operador é atribuído pela administração.", style = MaterialTheme.typography.bodySmall); OutlinedButton(onBack) { Text("Voltar") } }
 }

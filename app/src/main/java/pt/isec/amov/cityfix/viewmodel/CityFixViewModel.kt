@@ -19,7 +19,7 @@ import pt.isec.amov.cityfix.model.IncidentMessage
 import pt.isec.amov.cityfix.model.UserRole
 
 data class CityFixUiState(
-    val user: CityFixUser = CityFixUser(name = "Anonymous citizen"),
+    val user: CityFixUser = CityFixUser(name = "Cidadão anónimo"),
     val incidents: List<Incident> = sampleIncidents,
     val selectedIncident: Incident? = null,
     val messages: List<IncidentMessage> = emptyList(),
@@ -34,7 +34,7 @@ class CityFixViewModel(application: Application) : AndroidViewModel(application)
     private var messagesListener: ListenerRegistration? = null
     private val _state = MutableStateFlow(
         CityFixUiState(
-            user = repository.loadUser() ?: CityFixUser(name = "Anonymous citizen"),
+            user = repository.loadUser() ?: CityFixUser(name = "Cidadão anónimo"),
             incidents = repository.loadIncidents(sampleIncidents)
         )
     )
@@ -74,7 +74,7 @@ class CityFixViewModel(application: Application) : AndroidViewModel(application)
         _state.update {
             it.copy(
                 user = CityFixUser(
-                    name = name.trim().ifBlank { "CityFix user" },
+                    name = name.trim().ifBlank { "Utilizador CityFix" },
                     email = email.trim(),
                     role = UserRole.CITIZEN,
                     active = true
@@ -88,7 +88,7 @@ class CityFixViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun continueAsGuest() {
-        _state.update { it.copy(user = CityFixUser("Anonymous citizen"), message = null) }
+        _state.update { it.copy(user = CityFixUser("Cidadão anónimo"), message = null) }
         repository.clearUser()
     }
 
@@ -201,7 +201,7 @@ class CityFixViewModel(application: Application) : AndroidViewModel(application)
 }
 
 private val sampleIncidents = listOf(
-    Incident("1", "Buraco na estrada", "Buraco junto à passadeira.", "Public roads", IncidentSituation.DAMAGE, author = "Municipality", location = "Praça da República", supporters = 8),
-    Incident("2", "Candeeiro apagado", "A iluminação pública não funciona.", "Lighting", IncidentSituation.BREAKDOWN, author = "Municipality", location = "Rua da Sofia", supporters = 3),
-    Incident("3", "Contentor danificado", "Contentor sem tampa.", "Waste collection", IncidentSituation.DESTRUCTION, author = "Ana", location = "Coimbra", public = false)
+    Incident("1", "Buraco na estrada", "Buraco junto à passadeira.", "Estradas públicas", IncidentSituation.DAMAGE, author = "Município", location = "Praça da República", supporters = 8),
+    Incident("2", "Candeeiro apagado", "A iluminação pública não funciona.", "Iluminação", IncidentSituation.BREAKDOWN, author = "Município", location = "Rua da Sofia", supporters = 3),
+    Incident("3", "Contentor danificado", "Contentor sem tampa.", "Recolha de resíduos", IncidentSituation.DESTRUCTION, author = "Ana", location = "Coimbra", public = false)
 )
