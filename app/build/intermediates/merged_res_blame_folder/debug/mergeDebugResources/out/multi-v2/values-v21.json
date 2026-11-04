@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "pt.isec.amov.cityfix.app-mergeDebugResources-61:/values-v21/values-v21.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\user\\.gradle\\caches\\9.6.0\\transforms\\70fa8c618b083577e0a2b2e8809e1452\\transformed\\credentials-play-services-auth-1.2.0-rc01\\res\\values-v21\\values-v21.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "9",
+                        "endColumns": "12",
+                        "endOffsets": "543"
+                    }
+                }
+            ]
+        }
+    ]
+}

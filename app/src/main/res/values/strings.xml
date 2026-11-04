@@ -1,0 +1,97 @@
+<resources>
+    <string name="app_name">CityFix</string>
+
+    <!-- Navigation / Screen Titles -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_public_incidents">Public Incidents</string>
+    <string name="nav_my_tickets">My Tickets</string>
+    <string name="nav_new_incident">Report Incident</string>
+    <string name="nav_operator_panel">Management</string>
+    <string name="nav_validate_citizens">Validate Citizens</string>
+    <string name="nav_categories">Categories</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_login">Sign In</string>
+    <string name="nav_register">Register</string>
+    <string name="nav_incident_details">Incident Details</string>
+
+    <!-- Roles & Status -->
+    <string name="role_anonymous">Anonymous Citizen</string>
+    <string name="role_citizen">Citizen</string>
+    <string name="role_operator">Municipal Operator</string>
+    <string name="status_pending_validation">Pending NIF Validation</string>
+    <string name="status_active">Active</string>
+
+    <!-- Incident Statuses -->
+    <string name="status_open">Open</string>
+    <string name="status_info_request">Information Request</string>
+    <string name="status_in_resolution">In Resolution</string>
+    <string name="status_resolved">Resolved</string>
+    <string name="status_closed">Closed</string>
+
+    <!-- Incident Situations -->
+    <string name="situation_damage">Damage</string>
+    <string name="situation_breakdown">Breakdown</string>
+    <string name="situation_destruction">Destruction</string>
+    <string name="situation_theft">Theft</string>
+
+    <!-- Incident Scope -->
+    <string name="scope_public">Public</string>
+    <string name="scope_private">Private (Municipal Services Only)</string>
+
+    <!-- Dashboard Statistics -->
+    <string name="dash_avg_resolution_time">Avg. Repair Time</string>
+    <string name="dash_total_tickets">Total Incidents</string>
+    <string name="dash_active_percentage">% Active</string>
+    <string name="dash_hours_format">%.1f h</string>
+    <string name="dash_days_format">%.1f days</string>
+
+    <!-- Geofencing & Location -->
+    <string name="geofence_out_of_bounds_title">Outside Operating Area</string>
+    <string name="geofence_out_of_bounds_message">You are currently outside the 10 km operating perimeter of Praça da República in Coimbra. Public operations are limited.</string>
+    <string name="geofence_operator_distance_required">You must be within 20 meters of the incident to start resolution.</string>
+    <string name="geofence_operator_near_alert">Proximity Alert: You are within 20m of an active incident!</string>
+    <string name="duplicate_warning_title">Possible Duplicate Incident</string>
+    <string name="duplicate_warning_message">An incident has already been reported within 10 meters of this location. Would you like to upvote the existing ticket?</string>
+    <string name="btn_upvote_existing">Support Existing</string>
+    <string name="btn_proceed_anyway">Submit Anyway</string>
+
+    <!-- Impact Detection -->
+    <string name="impact_alert_title">Road Impact Detected!</string>
+    <string name="impact_alert_message">A sudden vertical shock was recorded. Would you like to report a road hazard at your current location?</string>
+    <string name="btn_report_hazard">Report Road Hazard</string>
+    <string name="btn_dismiss">Dismiss</string>
+
+    <!-- Forms & Actions -->
+    <string name="title_label">Title</string>
+    <string name="description_label">Description</string>
+    <string name="category_label">Category</string>
+    <string name="situation_label">Situation</string>
+    <string name="location_label">Location</string>
+    <string name="take_photo">Take Photo</string>
+    <string name="choose_gallery">Choose Media</string>
+    <string name="submit_incident">Submit Report</string>
+    <string name="resolution_proof_required">A photo or video proving the resolution is mandatory.</string>
+    <string name="btn_reopen_ticket">Reopen Ticket</string>
+    <string name="reopen_window_notice">You can reopen this ticket within 5 days of resolution if the issue persists.</string>
+    <string name="ticket_closed_notice">This ticket is closed and can no longer be modified.</string>
+
+    <!-- Messages & Communication -->
+    <string name="messages_section_title">Municipality Communication</string>
+    <string name="send_message_placeholder">Type a message...</string>
+    <string name="btn_send">Send</string>
+
+    <!-- Auth -->
+    <string name="email_label">Email</string>
+    <string name="password_label">Password</string>
+    <string name="name_label">Full Name</string>
+    <string name="phone_label">Phone Number</string>
+    <string name="nif_label">Tax Number (NIF)</string>
+    <string name="address_label">Address / Georeference</string>
+    <string name="impact_sensor_toggle">Enable Automatic Road Impact Detection</string>
+    <string name="btn_login">Sign In</string>
+    <string name="btn_register">Create Account</string>
+    <string name="btn_logout">Sign Out</string>
+    <string name="btn_continue_as_guest">Continue as Anonymous Citizen</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="account_pending_warning">Your account is pending municipal validation. You can browse public incidents, but incident creation is temporarily on hold.</string>
+</resources>

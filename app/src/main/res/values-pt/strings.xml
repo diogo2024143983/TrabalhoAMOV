@@ -1,0 +1,97 @@
+<resources>
+    <string name="app_name">CityFix</string>
+
+    <!-- Navigation / Screen Titles -->
+    <string name="nav_dashboard">Painel Principal</string>
+    <string name="nav_public_incidents">Ocorrências Públicas</string>
+    <string name="nav_my_tickets">Os Meus Pedidos</string>
+    <string name="nav_new_incident">Reportar Ocorrência</string>
+    <string name="nav_operator_panel">Gestão Operacional</string>
+    <string name="nav_validate_citizens">Validar Munícipes</string>
+    <string name="nav_categories">Categorias</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="nav_login">Entrar</string>
+    <string name="nav_register">Registar</string>
+    <string name="nav_incident_details">Detalhe da Ocorrência</string>
+
+    <!-- Roles & Status -->
+    <string name="role_anonymous">Munícipe Anónimo</string>
+    <string name="role_citizen">Munícipe Registado</string>
+    <string name="role_operator">Operador Municipal</string>
+    <string name="status_pending_validation">Pendente de Validação de NIF</string>
+    <string name="status_active">Ativo</string>
+
+    <!-- Incident Statuses -->
+    <string name="status_open">Aberto</string>
+    <string name="status_info_request">Pedido de Informação</string>
+    <string name="status_in_resolution">Em Resolução</string>
+    <string name="status_resolved">Resolvido</string>
+    <string name="status_closed">Fechado</string>
+
+    <!-- Incident Situations -->
+    <string name="situation_damage">Dano</string>
+    <string name="situation_breakdown">Avaria</string>
+    <string name="situation_destruction">Destruição</string>
+    <string name="situation_theft">Roubo</string>
+
+    <!-- Incident Scope -->
+    <string name="scope_public">Público</string>
+    <string name="scope_private">Privado (Apenas Serviços Municipais)</string>
+
+    <!-- Dashboard Statistics -->
+    <string name="dash_avg_resolution_time">Tempo Médio de Reparação</string>
+    <string name="dash_total_tickets">Total de Ocorrências</string>
+    <string name="dash_active_percentage">% Ativas</string>
+    <string name="dash_hours_format">%.1f h</string>
+    <string name="dash_days_format">%.1f dias</string>
+
+    <!-- Geofencing & Location -->
+    <string name="geofence_out_of_bounds_title">Fora da Área de Operação</string>
+    <string name="geofence_out_of_bounds_message">Encontra-se fora do raio de 10 km da Praça da República em Coimbra. O acesso a operações públicas está limitado.</string>
+    <string name="geofence_operator_distance_required">É obrigatório estar a menos de 20 metros da ocorrência para iniciar a resolução.</string>
+    <string name="geofence_operator_near_alert">Alerta de Proximidade: Encontra-se a menos de 20m de uma ocorrência ativa!</string>
+    <string name="duplicate_warning_title">Possível Ocorrência Duplicada</string>
+    <string name="duplicate_warning_message">Já existe uma ocorrência registada a menos de 10 metros deste local. Pretende subscrever e apoiar a ocorrência existente?</string>
+    <string name="btn_upvote_existing">Apoiar Existente</string>
+    <string name="btn_proceed_anyway">Submeter na Mesma</string>
+
+    <!-- Impact Detection -->
+    <string name="impact_alert_title">Impacto na Via Detetado!</string>
+    <string name="impact_alert_message">Foi detetada uma desaceleração vertical brusca. Deseja reportar uma anomalia na via (ex: buraco) na localização atual?</string>
+    <string name="btn_report_hazard">Reportar Buraco/Anomalia</string>
+    <string name="btn_dismiss">Ignorar</string>
+
+    <!-- Forms & Actions -->
+    <string name="title_label">Título</string>
+    <string name="description_label">Descrição</string>
+    <string name="category_label">Categoria</string>
+    <string name="situation_label">Situação</string>
+    <string name="location_label">Localização</string>
+    <string name="take_photo">Tirar Fotografia</string>
+    <string name="choose_gallery">Escolher Multimédia</string>
+    <string name="submit_incident">Submeter Ocorrência</string>
+    <string name="resolution_proof_required">É obrigatório anexar foto ou vídeo comprovativo da reparação.</string>
+    <string name="btn_reopen_ticket">Reabrir Ocorrência</string>
+    <string name="reopen_window_notice">Pode reabrir esta ocorrência no prazo de 5 dias após resolução caso o problema persista.</string>
+    <string name="ticket_closed_notice">Esta ocorrência encontra-se encerrada e já não pode ser alterada.</string>
+
+    <!-- Messages & Communication -->
+    <string name="messages_section_title">Canal com Serviços Municipais</string>
+    <string name="send_message_placeholder">Escreva uma mensagem...</string>
+    <string name="btn_send">Enviar</string>
+
+    <!-- Auth -->
+    <string name="email_label">Correio Eletrónico</string>
+    <string name="password_label">Palavra-passe</string>
+    <string name="name_label">Nome Completo</string>
+    <string name="phone_label">Contacto Telefónico</string>
+    <string name="nif_label">NIF</string>
+    <string name="address_label">Morada / Georreferenciação</string>
+    <string name="impact_sensor_toggle">Ativar Deteção Automática de Impacto na Via</string>
+    <string name="btn_login">Iniciar Sessão</string>
+    <string name="btn_register">Criar Conta</string>
+    <string name="btn_logout">Terminar Sessão</string>
+    <string name="btn_continue_as_guest">Continuar como Munícipe Anónimo</string>
+    <string name="forgot_password">Recuperar Palavra-passe</string>
+    <string name="account_pending_warning">A sua conta aguarda validação municipal. Pode consultar ocorrências públicas, mas a submissão de novos pedidos encontra-se temporariamente suspensa.</string>
+</resources>
