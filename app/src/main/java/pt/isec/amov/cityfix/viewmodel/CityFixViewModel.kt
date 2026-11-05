@@ -56,15 +56,18 @@ class CityFixViewModel(application: Application) : AndroidViewModel(application)
         password: String,
         onComplete: (Boolean) -> Unit
     ) {
+        _state.update { it.copy(loading = true, message = null) }
         cloudRepository.signInOrRegister(
             email = email.trim(),
             password = password,
             onSuccess = {
                 updateSignedInUser(name, email)
+                _state.update { it.copy(loading = false) }
                 onComplete(true)
             },
             onError = {
                 showCloudError(it)
+                _state.update { state -> state.copy(loading = false) }
                 onComplete(false)
             }
         )

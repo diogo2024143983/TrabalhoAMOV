@@ -92,7 +92,7 @@ private fun CityFixApp(vm: CityFixViewModel = viewModel()) {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { }
     if (screen == Screen.LOGIN) {
-        LoginScreen(onBack = { screen = Screen.DASHBOARD }, onLogin = { n, e, p ->
+        LoginScreen(message = state.message, loading = state.loading, onBack = { screen = Screen.DASHBOARD }, onLogin = { n, e, p ->
             vm.signIn(n, e, p) { success ->
                 if (success) screen = Screen.DASHBOARD
             }
@@ -296,6 +296,12 @@ private fun StatusChip(status: IncidentStatus) {
         Text("Estado: ${incidentStatusLabel(incident.status)}")
         Text("Localização: ${incident.location}")
         Text("Anexo: ${if (incident.hasMedia) "sim" else "não"}")
+        incident.locationCoordinates()?.let { (latitude, longitude) ->
+            OutlinedButton({
+                val uri = Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude")
+                context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+            }) { Text("Abrir localização no mapa") }
+        }
         if (incident.mediaUrl.isNotBlank()) {
             OutlinedButton({
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(incident.mediaUrl)))
@@ -401,7 +407,38 @@ private fun userRoleLabel(role: UserRole): String = when (role) {
     LazyColumn(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { item { Text("Gestão operacional", style = MaterialTheme.typography.headlineSmall) }; items(incidents) { IncidentCard(it) { advance(it) } } }
 }
 
-@Composable private fun LoginScreen(onBack: () -> Unit, onLogin: (String, String, String) -> Unit, onGuest: () -> Unit) {
+private fun Incident.locationCoordinates(): Pair<Double, Double>? {
+    val values = location.split(',', limit = 2).map { it.trim().toDoubleOrNull() }
+    return if (values.size == 2 && values.all { it != null }) {
+        values[0]!! to values[1]!!
+    } else {
+        null
+    }
+}
+
+@Composable private fun LoginScreen(
+    message: String?,
+    loading: Boolean,
+    onBack: () -> Unit,
+    onLogin: (String, String, String) -> Unit,
+    onGuest: () -> Unit
+) {
     var name by remember { mutableStateOf("") }; var email by remember { mutableStateOf("") }; var password by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { Text("Autenticação CityFix", style = MaterialTheme.typography.headlineSmall); OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Nome") }); OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text("Email") }); OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text("Palavra-passe") }, visualTransformation = PasswordVisualTransformation()); Button({ if (name.isNotBlank() && email.contains("@") && password.length >= 6) onLogin(name, email, password) }, Modifier.fillMaxWidth()) { Text("Iniciar sessão / Registar") }; OutlinedButton(onGuest, Modifier.fillMaxWidth()) { Text("Continuar como cidadão anónimo") }; Text("A conta é autenticada pelo Firebase. O acesso de operador é atribuído pela administração.", style = MaterialTheme.typography.bodySmall); OutlinedButton(onBack) { Text("Voltar") } }
+    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Autenticação CityFix", style = MaterialTheme.typography.headlineSmall)
+        OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Nome") }, enabled = !loading)
+        OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text("Email") }, enabled = !loading)
+        OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text("Palavra-passe") }, visualTransformation = PasswordVisualTransformation(), enabled = !loading)
+        if (!message.isNullOrBlank()) {
+            Text(message, color = MaterialTheme.colorScheme.error)
+        }
+        if (loading) {
+            androidx.compose.material3.CircularProgressIndicator()
+        } else {
+            Button({ if (name.isNotBlank() && email.contains("@") && password.length >= 6) onLogin(name, email, password) }, Modifier.fillMaxWidth()) { Text("Iniciar sessão / Registar") }
+            OutlinedButton(onGuest, Modifier.fillMaxWidth()) { Text("Continuar como cidadão anónimo") }
+        }
+        Text("A conta é autenticada pelo Firebase. O acesso de operador é atribuído pela administração.", style = MaterialTheme.typography.bodySmall)
+        OutlinedButton(onBack, enabled = !loading) { Text("Voltar") }
+    }
 }
