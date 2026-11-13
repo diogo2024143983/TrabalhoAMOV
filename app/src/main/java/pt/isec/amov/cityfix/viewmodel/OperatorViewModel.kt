@@ -51,26 +51,6 @@ class OperatorViewModel(application: Application) : AndroidViewModel(application
         cloudRepository.saveCategory(category)
     }
 
-    fun updateTicketStatus(
-        ticketId: String,
-        newStatus: IncidentStatus,
-        proofUrl: String = "",
-        onResult: (Boolean, String?) -> Unit = { _, _ -> }
-    ) {
-        if (newStatus == IncidentStatus.RESOLVED && proofUrl.isBlank()) {
-            onResult(false, "É obrigatório indicar ou anexar prova da resolução.")
-            return
-        }
-
-        cloudRepository.updateTicketStatus(
-            ticketId = ticketId,
-            newStatus = newStatus,
-            proofUrl = proofUrl.trim(),
-            onSuccess = { onResult(true, null) },
-            onError = { e -> onResult(false, e.localizedMessage) }
-        )
-    }
-
     fun checkOperatorProximity(incidents: List<Incident>, currentLat: Double, currentLon: Double) {
         val near = incidents.firstOrNull { ticket ->
             ticket.status in listOf(IncidentStatus.OPEN, IncidentStatus.IN_RESOLUTION) &&

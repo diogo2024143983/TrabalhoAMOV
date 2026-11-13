@@ -14,3 +14,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Enunciado do trabalho (e conversão para markdown)
+*.pdf
+/AMov.ProjetoKotlin_PT*/

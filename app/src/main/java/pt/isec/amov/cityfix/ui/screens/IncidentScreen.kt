@@ -5,8 +5,12 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,12 +24,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,10 +48,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +70,9 @@ import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.model.UserRole
 import pt.isec.amov.cityfix.utils.CityFixUtils
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // =========================================================================
 // 1. LISTA DE OCORRÊNCIAS
@@ -99,13 +111,25 @@ fun IncidentCard(incident: Incident, onSelect: (Incident) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (incident.mediaUrl.isNotBlank()) {
-                AsyncImage(
-                    model = incident.thumbnailUrl.ifBlank { incident.mediaUrl },
-                    contentDescription = "Thumbnail",
-                    modifier = Modifier.size(64.dp).clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
-                )
+            val thumb = incident.thumbnailUrl.ifBlank { if (incident.isVideo) "" else incident.mediaUrl }
+            Box(
+                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (thumb.isNotBlank()) {
+                    AsyncImage(
+                        model = thumb,
+                        contentDescription = "Miniatura de ${incident.title}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    if (incident.isVideo) {
+                        Icon(Icons.Default.PlayCircle, contentDescription = "Vídeo", tint = Color.White)
+                    }
+                } else if (incident.mediaPending) {
+                    Icon(Icons.Default.CloudUpload, contentDescription = "Multimédia a enviar")
+                }
             }
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -168,22 +192,34 @@ fun IncidentDetailScreen(
     incident: Incident,
     currentUser: CityFixUser,
     messages: List<IncidentMessage>,
+    loading: Boolean,
     onSupport: () -> Unit,
-    onUpdateStatus: (IncidentStatus, String) -> Unit,
+    onChangeStatus: (IncidentStatus) -> Unit,
+    onRegisterWorkStart: () -> Unit,
+    onRequestInfo: (String) -> Unit,
+    onResolveWithProof: (Uri) -> Unit,
     onReopen: (String) -> Unit,
     onSendMessage: (String) -> Unit
 ) {
-    var messageText by remember { mutableStateOf("") }
-    var reopenReason by remember { mutableStateOf("") }
-    var showReopenDialog by remember { mutableStateOf(false) }
-    var proofUrl by remember { mutableStateOf("") }
-    val context = LocalContext.current
+    var messageText by rememberSaveable { mutableStateOf("") }
+    var reopenReason by rememberSaveable { mutableStateOf("") }
+    var showReopenDialog by rememberSaveable { mutableStateOf(false) }
+    var infoText by rememberSaveable { mutableStateOf("") }
+    var showInfoDialog by rememberSaveable { mutableStateOf(false) }
+    var proofUri by remember { mutableStateOf<Uri?>(null) }
+
+    val proofPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) proofUri = uri
+    }
 
     val isAnonymous = currentUser.role == UserRole.ANONYMOUS
     val isOperator = currentUser.role == UserRole.OPERATOR
     val isAuthor = currentUser.id == incident.authorId
+    val isClosed = incident.status == IncidentStatus.CLOSED
     val canReopen = CityFixUtils.canReopenIncident(incident) && (isAuthor || isOperator)
     val hasSupported = incident.supporterIds.contains(currentUser.id)
+    val canAskClarification = isAuthor && !isOperator &&
+        incident.status in listOf(IncidentStatus.OPEN, IncidentStatus.IN_RESOLUTION)
 
     if (showReopenDialog) {
         AlertDialog(
@@ -202,11 +238,11 @@ fun IncidentDetailScreen(
             },
             confirmButton = {
                 Button(
+                    enabled = reopenReason.isNotBlank(),
                     onClick = {
-                        if (reopenReason.isNotBlank()) {
-                            onReopen(reopenReason)
-                            showReopenDialog = false
-                        }
+                        onReopen(reopenReason)
+                        reopenReason = ""
+                        showReopenDialog = false
                     }
                 ) { Text("Confirmar Reabertura") }
             },
@@ -216,25 +252,69 @@ fun IncidentDetailScreen(
         )
     }
 
+    if (showInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showInfoDialog = false },
+            title = { Text(if (isOperator) "Pedir informações ao munícipe" else "Pedir esclarecimentos à autarquia") },
+            text = {
+                OutlinedTextField(
+                    value = infoText,
+                    onValueChange = { infoText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    label = { Text(if (isOperator) "Que informação é necessária? *" else "Ex.: estimativa temporal, procedimento *") }
+                )
+            },
+            confirmButton = {
+                Button(
+                    enabled = infoText.isNotBlank(),
+                    onClick = {
+                        onRequestInfo(infoText)
+                        infoText = ""
+                        showInfoDialog = false
+                    }
+                ) { Text("Enviar pedido") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showInfoDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(incident.title, style = MaterialTheme.typography.headlineSmall)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(incident.title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                StatusChip(incident.status)
+            }
             Text(incident.description)
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
         }
 
-        // Imagem da Ocorrência
-        if (incident.mediaUrl.isNotBlank()) {
+        item {
+            MediaPreview(
+                url = incident.mediaUrl,
+                thumbnailUrl = incident.thumbnailUrl,
+                isVideo = incident.isVideo,
+                pending = incident.mediaPending,
+                description = "Multimédia da ocorrência"
+            )
+        }
+
+        if (incident.status == IncidentStatus.INFORMATION_REQUEST) {
             item {
-                AsyncImage(
-                    model = incident.mediaUrl,
-                    contentDescription = "Fotografia da ocorrência",
-                    modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(16.dp)),
-                    contentScale = ContentScale.Crop
-                )
+                val byOperator = incident.infoRequestedByRole == UserRole.OPERATOR.name
+                val waitingForMe = (byOperator && !isOperator) || (!byOperator && isOperator)
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
+                    Text(
+                        text = (if (byOperator) "A autarquia pediu informações complementares." else "O munícipe pediu esclarecimentos.") +
+                            if (waitingForMe) " Responda nas mensagens abaixo." else " A aguardar resposta.",
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
             }
         }
 
@@ -257,31 +337,45 @@ fun IncidentDetailScreen(
             if (incident.reopenReason.isNotBlank()) {
                 Text("Motivo de Reabertura: ${incident.reopenReason}", color = MaterialTheme.colorScheme.error)
             }
+            if (incident.status == IncidentStatus.RESOLVED && incident.resolvedAt != null) {
+                Text(
+                    "Encerramento automático em ${remainingUntilClose(incident.resolvedAt)}",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (incident.latitude != 0.0 && incident.longitude != 0.0) {
-                    OutlinedButton(onClick = {
-                        val zoom = if (isAnonymous) 12 else 17
-                        val uri = Uri.parse("geo:${incident.latitude},${incident.longitude}?z=$zoom")
-                        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                    }) {
-                        Text(if (isAnonymous) "Ver Mapa (Zoom Afastado)" else "Ver Localização no Mapa")
-                    }
-                }
-                if (incident.resolutionProofUrl.isNotBlank()) {
-                    OutlinedButton(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(incident.resolutionProofUrl)))
-                    }) {
-                        Text("Ver Prova de Resolução")
-                    }
+        if (incident.latitude != 0.0 && incident.longitude != 0.0) {
+            item {
+                val context = LocalContext.current
+                OutlinedButton(onClick = {
+                    val zoom = if (isAnonymous) 12 else 17
+                    val uri = Uri.parse("geo:${incident.latitude},${incident.longitude}?z=$zoom")
+                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                }) {
+                    Text(if (isAnonymous) "Ver Mapa (Zoom Afastado)" else "Ver Localização no Mapa")
                 }
             }
         }
 
+        if (incident.status in listOf(IncidentStatus.RESOLVED, IncidentStatus.CLOSED) &&
+            (incident.resolutionProofUrl.isNotBlank() || incident.proofPending)
+        ) {
+            item {
+                Text("Prova de Resolução", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(6.dp))
+                MediaPreview(
+                    url = incident.resolutionProofUrl,
+                    thumbnailUrl = incident.resolutionProofThumbUrl,
+                    isVideo = incident.resolutionProofIsVideo,
+                    pending = incident.proofPending,
+                    description = "Prova de resolução"
+                )
+            }
+        }
+
         // Botão Apoiar Ocorrência
-        if (!isAnonymous && !hasSupported) {
+        if (!isAnonymous && !hasSupported && !isClosed) {
             item {
                 Button(onClick = onSupport, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.ThumbUp, contentDescription = null)
@@ -300,42 +394,55 @@ fun IncidentDetailScreen(
                 when (incident.status) {
                     IncidentStatus.OPEN -> {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { onUpdateStatus(IncidentStatus.INFORMATION_REQUEST, "") }) {
-                                Text("Pedir Info")
-                            }
-                            Button(onClick = { onUpdateStatus(IncidentStatus.IN_RESOLUTION, "") }) {
-                                Text("Iniciar Resolução")
-                            }
+                            OutlinedButton(onClick = { showInfoDialog = true }) { Text("Pedir Info") }
+                            Button(onClick = { onChangeStatus(IncidentStatus.IN_RESOLUTION) }) { Text("Iniciar Resolução") }
                         }
                     }
                     IncidentStatus.INFORMATION_REQUEST -> {
-                        Button(onClick = { onUpdateStatus(IncidentStatus.IN_RESOLUTION, "") }) {
-                            Text("Iniciar Resolução")
-                        }
+                        Button(onClick = { onChangeStatus(IncidentStatus.IN_RESOLUTION) }) { Text("Iniciar Resolução") }
                     }
                     IncidentStatus.IN_RESOLUTION -> {
-                        OutlinedTextField(
-                            value = proofUrl,
-                            onValueChange = { proofUrl = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = { Text("URL / Prova de Resolução (Obrigatório) *") }
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Button(
-                            onClick = { onUpdateStatus(IncidentStatus.RESOLVED, proofUrl) },
-                            enabled = proofUrl.isNotBlank()
-                        ) {
-                            Text("Marcar como Resolvido com Prova")
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (incident.workStartedAt != null) {
+                                Text("Trabalhos iniciados a ${formatDate(incident.workStartedAt)}")
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (incident.workStartedAt == null) {
+                                    Button(onClick = onRegisterWorkStart) { Text("Registar início dos trabalhos") }
+                                }
+                                OutlinedButton(onClick = { showInfoDialog = true }) { Text("Pedir Info") }
+                            }
+                            OutlinedButton(onClick = {
+                                proofPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                            }) {
+                                Text(if (proofUri != null) "Prova selecionada ✓ (alterar)" else "Anexar foto/vídeo do trabalho concluído *")
+                            }
+                            Button(
+                                onClick = { proofUri?.let(onResolveWithProof); proofUri = null },
+                                enabled = proofUri != null && !loading
+                            ) {
+                                if (loading) {
+                                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                    Spacer(Modifier.size(8.dp))
+                                }
+                                Text("Marcar como Resolvido")
+                            }
                         }
                     }
                     IncidentStatus.RESOLVED -> {
-                        Button(onClick = { onUpdateStatus(IncidentStatus.CLOSED, "") }) {
-                            Text("Encerrar Ocorrência")
-                        }
+                        Text("Aguarda o prazo de reabertura. O ticket é encerrado automaticamente após 5 dias.")
                     }
                     IncidentStatus.CLOSED -> {
                         Text("Esta ocorrência está definitivamente encerrada.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                }
+            }
+        }
+
+        if (canAskClarification) {
+            item {
+                OutlinedButton(onClick = { showInfoDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Pedir esclarecimentos à autarquia")
                 }
             }
         }
@@ -348,7 +455,29 @@ fun IncidentDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Reabrir Ocorrência (Restam menos de 5 dias)")
+                    Text("Reabrir Ocorrência (até 5 dias após a resolução)")
+                }
+            }
+        }
+
+        // Histórico completo do ticket (transições com timestamp)
+        if (!isAnonymous && incident.history.isNotEmpty()) {
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Text("Histórico", style = MaterialTheme.typography.titleMedium)
+            }
+            items(incident.history.reversed()) { entry ->
+                Column(Modifier.fillMaxWidth()) {
+                    Text(
+                        "${formatDate(entry.at)} • ${incidentStatusLabel(entry.status)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        listOf(entry.byName, entry.note).filter { it.isNotBlank() }.joinToString(" — "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -360,39 +489,109 @@ fun IncidentDetailScreen(
                 Text("Comunicação com os Serviços Camarários", style = MaterialTheme.typography.titleMedium)
             }
 
-            items(messages) { msg ->
+            items(messages, key = { it.id }) { msg ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Column(Modifier.padding(10.dp)) {
-                        Text("${msg.authorName} (${msg.authorRole}):", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            "${msg.authorName} (${roleLabel(msg.authorRole)}) • ${formatDate(msg.createdAt)}",
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelMedium
+                        )
                         Text(msg.text, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = messageText,
-                        onValueChange = { messageText = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Escreva uma mensagem...") }
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Button(onClick = {
-                        if (messageText.isNotBlank()) {
-                            onSendMessage(messageText)
-                            messageText = ""
+                if (isClosed) {
+                    Text("Ticket encerrado: não admite novas mensagens.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = messageText,
+                            onValueChange = { messageText = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("Escreva uma mensagem...") }
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        Button(
+                            enabled = messageText.isNotBlank(),
+                            onClick = {
+                                onSendMessage(messageText)
+                                messageText = ""
+                            }
+                        ) {
+                            Text("Enviar")
                         }
-                    }) {
-                        Text("Enviar")
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun MediaPreview(url: String, thumbnailUrl: String, isVideo: Boolean, pending: Boolean, description: String) {
+    val context = LocalContext.current
+    when {
+        url.isBlank() && pending -> Card(Modifier.fillMaxWidth()) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CloudUpload, contentDescription = null)
+                Spacer(Modifier.size(8.dp))
+                Text("Multimédia em envio (será carregada quando houver rede)…")
+            }
+        }
+        url.isBlank() -> Unit
+        isVideo -> Box(
+            modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(16.dp))
+                .background(Color.Black)
+                .clickable {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(url), "video/*")
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            if (thumbnailUrl.isNotBlank()) {
+                AsyncImage(
+                    model = thumbnailUrl,
+                    contentDescription = description,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            Icon(
+                Icons.Default.PlayCircle,
+                contentDescription = "Reproduzir vídeo",
+                tint = Color.White,
+                modifier = Modifier.size(56.dp)
+            )
+        }
+        else -> AsyncImage(
+            model = url,
+            contentDescription = description,
+            modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(16.dp)),
+            contentScale = ContentScale.Crop
+        )
+    }
+}
+
+private fun formatDate(millis: Long): String =
+    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(millis))
+
+private fun remainingUntilClose(resolvedAt: Long): String {
+    val remaining = (resolvedAt + CityFixUtils.REOPEN_WINDOW_MS - System.currentTimeMillis()).coerceAtLeast(0)
+    val hours = remaining / (60 * 60 * 1000)
+    return if (hours >= 24) "${hours / 24} dia(s) e ${hours % 24} h" else "$hours h"
+}
+
+private fun roleLabel(role: UserRole): String = when (role) {
+    UserRole.OPERATOR -> "Operador"
+    UserRole.CITIZEN -> "Munícipe"
+    UserRole.ANONYMOUS -> "Anónimo"
 }
 
 // =========================================================================
@@ -402,23 +601,26 @@ fun IncidentDetailScreen(
 @Composable
 fun NewIncidentScreen(
     categories: List<IncidentCategory>,
+    loading: Boolean,
     onCancel: () -> Unit,
     onSubmit: (String, String, String, String, IncidentSituation, Boolean, Double, Double, String, Uri?) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    var title by rememberSaveable { mutableStateOf("") }
+    var description by rememberSaveable { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(categories.firstOrNull() ?: IncidentCategory(id = "vias", name = "Vias Públicas")) }
-    var situation by remember { mutableStateOf(IncidentSituation.DAMAGE) }
-    var isPublic by remember { mutableStateOf(true) }
-    var latitude by remember { mutableDoubleStateOf(CityFixUtils.PRACA_REPUBLICA_LAT) }
-    var longitude by remember { mutableDoubleStateOf(CityFixUtils.PRACA_REPUBLICA_LON) }
-    var locationAddress by remember { mutableStateOf("Coimbra") }
+    var situation by rememberSaveable { mutableStateOf(IncidentSituation.DAMAGE) }
+    var isPublic by rememberSaveable { mutableStateOf(true) }
+    var latitude by rememberSaveable { mutableDoubleStateOf(CityFixUtils.PRACA_REPUBLICA_LAT) }
+    var longitude by rememberSaveable { mutableDoubleStateOf(CityFixUtils.PRACA_REPUBLICA_LON) }
+    var locationAddress by rememberSaveable { mutableStateOf("Coimbra") }
     var mediaUri by remember { mutableStateOf<Uri?>(null) }
     var locationMessage by remember { mutableStateOf("") }
     var formError by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
-    val mediaPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { mediaUri = it }
+    val mediaPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) mediaUri = uri
+    }
     val locationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     fun fetchCurrentLocation() {
@@ -434,7 +636,7 @@ fun NewIncidentScreen(
                 if (loc != null) {
                     latitude = loc.latitude
                     longitude = loc.longitude
-                    locationAddress = String.format("%.4f, %.4f", loc.latitude, loc.longitude)
+                    locationAddress = String.format(Locale.US, "%.4f, %.4f", loc.latitude, loc.longitude)
                     locationMessage = "Localização obtida com sucesso!"
                 } else {
                     locationMessage = "GPS indisponível. Usando valor padrão."
@@ -446,7 +648,7 @@ fun NewIncidentScreen(
     }
 
     LaunchedEffect(categories) {
-        if (categories.isNotEmpty() && selectedCategory.id.isBlank()) {
+        if (categories.isNotEmpty() && categories.none { it.id == selectedCategory.id }) {
             selectedCategory = categories.first()
         }
     }
@@ -531,7 +733,9 @@ fun NewIncidentScreen(
                     label = { Text(if (isPublic) "Ocorrência Pública" else "Ocorrência Privada") }
                 )
                 Spacer(Modifier.size(8.dp))
-                OutlinedButton(onClick = { mediaPicker.launch("image/* video/*") }) {
+                OutlinedButton(onClick = {
+                    mediaPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                }) {
                     Text(if (mediaUri != null) "Foto/Vídeo Selecionado ✓" else "Anexar Foto/Vídeo *")
                 }
             }
@@ -549,6 +753,7 @@ fun NewIncidentScreen(
                     Text("Cancelar")
                 }
                 Button(
+                    enabled = !loading,
                     onClick = {
                         if (title.isBlank() || description.isBlank() || mediaUri == null) {
                             formError = "Preenche o título, descrição e anexa uma fotografia/vídeo (obrigatório)."
@@ -570,7 +775,11 @@ fun NewIncidentScreen(
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Submeter")
+                    if (loading) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Submeter")
+                    }
                 }
             }
         }
@@ -581,7 +790,7 @@ fun incidentSituationLabel(situation: IncidentSituation): String = when (situati
     IncidentSituation.DAMAGE -> "Dano"
     IncidentSituation.BREAKDOWN -> "Avaria"
     IncidentSituation.DESTRUCTION -> "Destruição"
-    IncidentSituation.THEFT -> "Furto"
+    IncidentSituation.THEFT -> "Roubo"
 }
 
 fun incidentStatusLabel(status: IncidentStatus): String = when (status) {

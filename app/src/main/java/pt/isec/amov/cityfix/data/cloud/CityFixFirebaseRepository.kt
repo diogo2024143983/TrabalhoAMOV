@@ -2,6 +2,7 @@ package pt.isec.amov.cityfix.data.cloud
 
 import android.content.Context
 import android.net.Uri
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
@@ -16,7 +17,9 @@ import pt.isec.amov.cityfix.model.IncidentCategory
 import pt.isec.amov.cityfix.model.IncidentMessage
 import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.model.IncidentStatus
+import pt.isec.amov.cityfix.model.StatusChange
 import pt.isec.amov.cityfix.model.UserRole
+import pt.isec.amov.cityfix.utils.CityFixUtils
 import java.util.UUID
 
 class CityFixFirebaseRepository(context: Context) {
@@ -265,57 +268,114 @@ class CityFixFirebaseRepository(context: Context) {
             .addOnFailureListener(onError)
     }
 
-    fun updateTicketStatus(
+    /**
+     * Transição de estado do ticket: atualiza o estado, o timestamp correspondente
+     * e acrescenta uma entrada ao histórico. [extra] permite atualizar outros campos na mesma escrita.
+     * Não espera pela confirmação do servidor para funcionar offline (a escrita fica em cache).
+     */
+    fun changeStatus(
         ticketId: String,
         newStatus: IncidentStatus,
-        proofUrl: String = "",
-        onSuccess: () -> Unit = {},
+        actor: CityFixUser,
+        note: String = "",
+        extra: Map<String, Any?> = emptyMap(),
         onError: (Exception) -> Unit = {}
     ) {
         val database = firestore ?: return
-        val now = System.currentTimeMillis()
-        val updates = mutableMapOf<String, Any>(
-            "status" to newStatus.name
-        )
-
-        when (newStatus) {
-            IncidentStatus.IN_RESOLUTION -> {
-                updates["inResolutionAt"] = now
-            }
-            IncidentStatus.RESOLVED -> {
-                updates["resolvedAt"] = now
-                if (proofUrl.isNotBlank()) {
-                    updates["resolutionProofUrl"] = proofUrl
-                }
-            }
-            IncidentStatus.CLOSED -> {
-                updates["closedAt"] = now
-            }
-            else -> {}
-        }
-
+        val updates = statusUpdates(newStatus, actor, note) + extra
         database.collection(TICKETS_COLLECTION).document(ticketId)
             .update(updates)
-            .addOnSuccessListener { onSuccess() }
             .addOnFailureListener(onError)
     }
 
-    fun reopenTicket(
-        ticketId: String,
-        reason: String,
-        onSuccess: () -> Unit = {},
-        onError: (Exception) -> Unit = {}
-    ) {
+    /** Regista o início dos trabalhos no terreno (o ticket mantém-se "Em Resolução"). */
+    fun registerWorkStart(ticketId: String, actor: CityFixUser, onError: (Exception) -> Unit = {}) {
         val database = firestore ?: return
-        val updates = mapOf(
-            "status" to IncidentStatus.OPEN.name,
-            "reopenReason" to reason,
-            "resolvedAt" to FieldValue.delete()
+        val now = System.currentTimeMillis()
+        val entry = StatusChange(
+            status = IncidentStatus.IN_RESOLUTION,
+            at = now,
+            byUid = actor.id,
+            byName = actor.name,
+            byRole = actor.role,
+            note = "Início dos trabalhos no terreno"
         )
         database.collection(TICKETS_COLLECTION).document(ticketId)
-            .update(updates)
-            .addOnSuccessListener { onSuccess() }
+            .update(mapOf("workStartedAt" to now, "history" to FieldValue.arrayUnion(entry.toMap())))
             .addOnFailureListener(onError)
+    }
+
+    fun updateLastMessage(ticketId: String, message: IncidentMessage) {
+        val database = firestore ?: return
+        database.collection(TICKETS_COLLECTION).document(ticketId)
+            .update(
+                mapOf(
+                    "lastMessageAt" to message.createdAt,
+                    "lastMessageAuthorId" to message.authorId,
+                    "lastMessageText" to message.text.take(120)
+                )
+            )
+    }
+
+    /**
+     * Encerra o ticket se já passaram 5 dias desde a resolução. Usa uma transação para que
+     * vários dispositivos a correr esta verificação em simultâneo não dupliquem o histórico.
+     * Bloqueante: só deve ser chamada a partir de um Worker / thread de background.
+     */
+    fun closeIfExpiredBlocking(ticketId: String, now: Long = System.currentTimeMillis()): Boolean {
+        val database = firestore ?: return false
+        val ref = database.collection(TICKETS_COLLECTION).document(ticketId)
+        return runCatching {
+            Tasks.await(database.runTransaction { tx ->
+                val snap = tx.get(ref)
+                val status = snap.getString("status")
+                val resolvedAt = snap.getLong("resolvedAt")
+                if (status == IncidentStatus.RESOLVED.name && resolvedAt != null &&
+                    now - resolvedAt >= CityFixUtils.REOPEN_WINDOW_MS
+                ) {
+                    tx.update(ref, statusUpdates(IncidentStatus.CLOSED, SYSTEM_ACTOR, "Encerrado automaticamente após 5 dias", now))
+                    true
+                } else {
+                    false
+                }
+            })
+        }.getOrDefault(false)
+    }
+
+    /** Leitura síncrona de todos os tickets (cache ou servidor). Apenas para Workers. */
+    fun fetchTicketsBlocking(): List<Incident> {
+        val database = firestore ?: return emptyList()
+        return runCatching {
+            Tasks.await(database.collection(TICKETS_COLLECTION).get())
+                .documents.mapNotNull { it.toIncident() }
+        }.getOrDefault(emptyList())
+    }
+
+    private fun statusUpdates(
+        newStatus: IncidentStatus,
+        actor: CityFixUser,
+        note: String,
+        now: Long = System.currentTimeMillis()
+    ): Map<String, Any?> {
+        val entry = StatusChange(
+            status = newStatus,
+            at = now,
+            byUid = actor.id,
+            byName = actor.name,
+            byRole = actor.role,
+            note = note
+        )
+        val updates = mutableMapOf<String, Any?>(
+            "status" to newStatus.name,
+            "history" to FieldValue.arrayUnion(entry.toMap())
+        )
+        when (newStatus) {
+            IncidentStatus.IN_RESOLUTION -> updates["inResolutionAt"] = now
+            IncidentStatus.RESOLVED -> updates["resolvedAt"] = now
+            IncidentStatus.CLOSED -> updates["closedAt"] = now
+            IncidentStatus.OPEN, IncidentStatus.INFORMATION_REQUEST -> Unit
+        }
+        return updates
     }
 
     fun addSupporter(
@@ -510,14 +570,45 @@ class CityFixFirebaseRepository(context: Context) {
         "mediaUrl" to mediaUrl,
         "thumbnailUrl" to thumbnailUrl,
         "isVideo" to isVideo,
+        "mediaPending" to mediaPending,
         "resolutionProofUrl" to resolutionProofUrl,
+        "resolutionProofThumbUrl" to resolutionProofThumbUrl,
+        "resolutionProofIsVideo" to resolutionProofIsVideo,
+        "proofPending" to proofPending,
         "reopenReason" to reopenReason,
         "createdAt" to createdAt,
         "inResolutionAt" to inResolutionAt,
+        "workStartedAt" to workStartedAt,
         "resolvedAt" to resolvedAt,
         "closedAt" to closedAt,
+        "history" to history.map { it.toMap() },
+        "infoRequestedByRole" to infoRequestedByRole,
+        "statusBeforeInfoRequest" to statusBeforeInfoRequest,
+        "lastMessageAt" to lastMessageAt,
+        "lastMessageAuthorId" to lastMessageAuthorId,
+        "lastMessageText" to lastMessageText,
         "supporterIds" to supporterIds
     )
+
+    private fun StatusChange.toMap(): Map<String, Any?> = mapOf(
+        "status" to status.name,
+        "at" to at,
+        "byUid" to byUid,
+        "byName" to byName,
+        "byRole" to byRole.name,
+        "note" to note
+    )
+
+    private fun Map<*, *>.toStatusChange(): StatusChange? = runCatching {
+        StatusChange(
+            status = IncidentStatus.valueOf(this["status"].toString()),
+            at = (this["at"] as? Number)?.toLong() ?: 0L,
+            byUid = this["byUid"]?.toString().orEmpty(),
+            byName = this["byName"]?.toString().orEmpty(),
+            byRole = runCatching { UserRole.valueOf(this["byRole"].toString()) }.getOrDefault(UserRole.CITIZEN),
+            note = this["note"]?.toString().orEmpty()
+        )
+    }.getOrNull()
 
     private fun DocumentSnapshot.toIncident(): Incident? {
         return runCatching {
@@ -543,12 +634,26 @@ class CityFixFirebaseRepository(context: Context) {
                 mediaUrl = getString("mediaUrl").orEmpty(),
                 thumbnailUrl = getString("thumbnailUrl").orEmpty(),
                 isVideo = getBoolean("isVideo") ?: false,
+                mediaPending = getBoolean("mediaPending") ?: false,
                 resolutionProofUrl = getString("resolutionProofUrl").orEmpty(),
+                resolutionProofThumbUrl = getString("resolutionProofThumbUrl").orEmpty(),
+                resolutionProofIsVideo = getBoolean("resolutionProofIsVideo") ?: false,
+                proofPending = getBoolean("proofPending") ?: false,
                 reopenReason = getString("reopenReason").orEmpty(),
                 createdAt = getLong("createdAt") ?: 0L,
                 inResolutionAt = getLong("inResolutionAt"),
+                workStartedAt = getLong("workStartedAt"),
                 resolvedAt = getLong("resolvedAt"),
                 closedAt = getLong("closedAt"),
+                history = (get("history") as? List<*>)
+                    ?.mapNotNull { (it as? Map<*, *>)?.toStatusChange() }
+                    ?.sortedBy { it.at }
+                    .orEmpty(),
+                infoRequestedByRole = getString("infoRequestedByRole").orEmpty(),
+                statusBeforeInfoRequest = getString("statusBeforeInfoRequest").orEmpty(),
+                lastMessageAt = getLong("lastMessageAt") ?: 0L,
+                lastMessageAuthorId = getString("lastMessageAuthorId").orEmpty(),
+                lastMessageText = getString("lastMessageText").orEmpty(),
                 supporterIds = (get("supporterIds") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
             )
         }.getOrNull()
@@ -612,9 +717,10 @@ class CityFixFirebaseRepository(context: Context) {
         }.getOrNull()
     }
 
-    private companion object {
+    companion object {
         const val USERS_COLLECTION = "users"
         const val TICKETS_COLLECTION = "tickets"
+        val SYSTEM_ACTOR = CityFixUser(id = "system", name = "Sistema", role = UserRole.OPERATOR)
         const val CATEGORIES_COLLECTION = "categories"
         const val MESSAGES_COLLECTION = "messages"
     }

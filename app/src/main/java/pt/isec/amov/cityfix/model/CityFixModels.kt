@@ -33,6 +33,17 @@ data class CityFixUser(
     val messagingToken: String = ""
 )
 
+/** Entrada do histórico do ticket: cada transição de estado fica registada com timestamp. */
+@Serializable
+data class StatusChange(
+    val status: IncidentStatus = IncidentStatus.OPEN,
+    val at: Long = System.currentTimeMillis(),
+    val byUid: String = "",
+    val byName: String = "",
+    val byRole: UserRole = UserRole.CITIZEN,
+    val note: String = ""
+)
+
 @Serializable
 data class Incident(
     val id: String = "",
@@ -42,22 +53,38 @@ data class Incident(
     val categoryName: String = "",
     val situation: IncidentSituation = IncidentSituation.DAMAGE,
     val status: IncidentStatus = IncidentStatus.OPEN,
-    val isPublic: Boolean = true,                    // Bate certo com 'isPublic' da regra Firebase
-    val authorId: String = "",                       // Bate certo com 'authorId' da regra Firebase
+    val isPublic: Boolean = true,
+    val authorId: String = "",
     val authorName: String = "",
     val authorPhone: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val locationAddress: String = "",
+    // Multimédia da ocorrência (preenchida pelo MediaUploadWorker)
     val mediaUrl: String = "",
     val thumbnailUrl: String = "",
     val isVideo: Boolean = false,
+    val mediaPending: Boolean = false,
+    // Prova de resolução (foto/vídeo carregado pelo operador)
     val resolutionProofUrl: String = "",
+    val resolutionProofThumbUrl: String = "",
+    val resolutionProofIsVideo: Boolean = false,
+    val proofPending: Boolean = false,
     val reopenReason: String = "",
+    // Timestamps do ciclo de vida
     val createdAt: Long = System.currentTimeMillis(),
     val inResolutionAt: Long? = null,
+    val workStartedAt: Long? = null,
     val resolvedAt: Long? = null,
     val closedAt: Long? = null,
+    val history: List<StatusChange> = emptyList(),
+    // Pedido de informações (em qualquer dos sentidos)
+    val infoRequestedByRole: String = "",
+    val statusBeforeInfoRequest: String = "",
+    // Resumo da última mensagem (usado para notificações)
+    val lastMessageAt: Long = 0L,
+    val lastMessageAuthorId: String = "",
+    val lastMessageText: String = "",
     val supporterIds: List<String> = emptyList()
 )
 
@@ -70,4 +97,11 @@ data class IncidentMessage(
     val authorRole: UserRole = UserRole.CITIZEN,
     val text: String = "",
     val createdAt: Long = System.currentTimeMillis()
+)
+
+/** Ficheiros locais já comprimidos, prontos a serem enviados pelo WorkManager. */
+data class PreparedMedia(
+    val mediaPath: String,
+    val thumbnailPath: String?,
+    val isVideo: Boolean
 )

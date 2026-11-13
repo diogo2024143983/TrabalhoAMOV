@@ -1,8 +1,10 @@
 package pt.isec.amov.cityfix
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -34,14 +36,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pt.isec.amov.cityfix.data.notifications.TicketNotifier
+import pt.isec.amov.cityfix.data.work.TicketLifecycleWorker
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.model.UserRole
 import pt.isec.amov.cityfix.ui.screens.AuthScreen
@@ -57,13 +63,25 @@ import pt.isec.amov.cityfix.viewmodel.IncidentViewModel
 import pt.isec.amov.cityfix.viewmodel.OperatorViewModel
 
 class MainActivity : ComponentActivity() {
+    /** Ticket a abrir quando a app é iniciada a partir de uma notificação. */
+    private val pendingTicketId = mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingTicketId.value = intent?.getStringExtra(TicketNotifier.EXTRA_TICKET_ID)
         setContent {
             CityFixTheme {
-                CityFixApp()
+                CityFixApp(
+                    pendingTicketId = pendingTicketId.value,
+                    onPendingTicketHandled = { pendingTicketId.value = null }
+                )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra(TicketNotifier.EXTRA_TICKET_ID)?.let { pendingTicketId.value = it }
     }
 }
 
@@ -72,6 +90,8 @@ private enum class Screen { DASHBOARD, INCIDENTS, NEW, PROFILE, DETAIL, LOGIN, R
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun CityFixApp(
+    pendingTicketId: String?,
+    onPendingTicketHandled: () -> Unit,
     authVm: AuthViewModel = viewModel(),
     incidentVm: IncidentViewModel = viewModel(),
     operatorVm: OperatorViewModel = viewModel()
@@ -82,9 +102,35 @@ private fun CityFixApp(
 
     var screen by remember { mutableStateOf(Screen.DASHBOARD) }
 
+    val context = LocalContext.current
+    val showMessage: (String?) -> Unit = { msg ->
+        if (!msg.isNullOrBlank()) Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { }
+
+    // Permissão de notificações pedida logo ao arrancar (Android 13+)
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            permissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+        }
+    }
+
+    // Após login, corre de imediato a verificação do ciclo de vida / notificações
+    LaunchedEffect(authState.user.id) {
+        if (authState.user.id.isNotBlank()) TicketLifecycleWorker.runNow(context)
+    }
+
+    // Abrir o ticket indicado numa notificação
+    LaunchedEffect(pendingTicketId, incidentState.incidents) {
+        val id = pendingTicketId ?: return@LaunchedEffect
+        if (incidentVm.selectIncidentById(id)) {
+            screen = Screen.DETAIL
+            onPendingTicketHandled()
+        }
+    }
 
     // Alerta de Proximidade do Operador (< 20m)
     operatorState.proximityAlertIncident?.let { nearTicket ->
@@ -250,6 +296,7 @@ private fun CityFixApp(
 
                 Screen.NEW -> NewIncidentScreen(
                     categories = incidentState.categories.filter { it.active },
+                    loading = incidentState.loading,
                     onCancel = { screen = Screen.INCIDENTS },
                     onSubmit = { title, desc, catId, catName, sit, pub, lat, lon, addr, mediaUri ->
                         incidentVm.addIncident(
@@ -264,7 +311,8 @@ private fun CityFixApp(
                             longitude = lon,
                             locationAddress = addr,
                             mediaUri = mediaUri
-                        ) { success, _ ->
+                        ) { success, msg ->
+                            showMessage(msg)
                             if (success) screen = Screen.INCIDENTS
                         }
                     }
@@ -289,12 +337,16 @@ private fun CityFixApp(
                         incident = currentTicket,
                         currentUser = authState.user,
                         messages = incidentState.messages,
+                        loading = incidentState.loading,
                         onSupport = { incidentVm.supportIncident(currentTicket.id, authState.user.id) },
-                        onUpdateStatus = { newStatus, proofUrl ->
-                            operatorVm.updateTicketStatus(currentTicket.id, newStatus, proofUrl)
+                        onChangeStatus = { newStatus -> incidentVm.changeStatus(authState.user, newStatus) },
+                        onRegisterWorkStart = { incidentVm.registerWorkStart(authState.user) },
+                        onRequestInfo = { text -> incidentVm.requestInformation(authState.user, text) },
+                        onResolveWithProof = { uri ->
+                            incidentVm.resolveWithProof(authState.user, uri) { _, msg -> showMessage(msg) }
                         },
                         onReopen = { reason ->
-                            incidentVm.reopenIncident(currentTicket.id, reason) { _, _ -> }
+                            incidentVm.reopenIncident(authState.user, currentTicket.id, reason) { _, msg -> showMessage(msg) }
                         },
                         onSendMessage = { text ->
                             incidentVm.sendMessage(authState.user, text)
