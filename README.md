@@ -5,7 +5,9 @@ Aplicação Android para comunicação e acompanhamento de ocorrências no espa�
 ## Tecnologias
 
 - Kotlin e Jetpack Compose (Material 3)
-- Arquitetura MVVM (ViewModels com `StateFlow`)
+- Arquitetura MVVM (ViewModels com `StateFlow`, `ViewModelProvider.Factory` e repositórios criados no objeto `Application`)
+- Navegação type-safe (Navigation Compose 2.8+, rotas `@Serializable`)
+- Mapas OpenStreetMap (osmdroid)
 - Firebase Authentication
 - Cloud Firestore (com cache offline nativa)
 - Firebase Storage
@@ -52,6 +54,17 @@ Aplicação Android para comunicação e acompanhamento de ocorrências no espa�
 - Geradas pelo `TicketNotifier`, tanto com a app aberta (listener do Firestore) como em segundo plano (worker periódico de 15 minutos)
 - Tocar numa notificação abre o ticket correspondente
 
+## Arquitetura (alinhada com as aulas práticas P07–P10)
+
+- **Pacotes por camada**: `model` (Kotlin puro), `data` (repositórios, workers, notificações), `services`, `viewmodel`, `utils`, `ui.navigation`, `ui.components`, `ui.screens`, `ui.theme`.
+- **Domínio**: `IncidentList` concentra as regras de negócio (ocorrências de grupo, estatísticas, reabertura) e ordena as categorias com `Collator`.
+- **Navegação**: rotas `@Serializable` em `Destinations.kt`, `NavHost` com `toRoute<>()`, TopAppBar contextual e botão "voltar" do sistema funcional.
+- **ViewModels**: partilhados (`AuthViewModel`, `IncidentViewModel`, `OperatorViewModel`) e com âmbito no ecrã (`ReportIncidentViewModel`, `AuthFormViewModel`, `EditProfileViewModel`), estes com `UiState` imutável, validação em tempo real por campo e `isValid` calculado.
+- **Ecrãs sem estado**: recebem dados e emitem eventos por lambdas; `@Preview` nos principais.
+- **Ocorrências**: até 3 anexos (`PickMultipleVisualMedia` ou câmara com `TakePicture` e `FileProvider`), galeria `LazyVerticalStaggeredGrid`, categorias em `ExposedDropdownMenuBox`, local escolhido no mapa ou por GPS.
+- **Layout adaptativo**: em landscape, o detalhe e a nova ocorrência dividem o ecrã 50/50 com o mapa.
+- **Geofence de 20 m**: `ProximityService` em primeiro plano (padrão de P10), com `requestLocationUpdates` e `Location.distanceBetween`; os autores são notificados quando um operador está junto da ocorrência.
+
 ## Estado atual
 
 O projeto compila e foi testado no emulador com uma conta de operador. Foi percorrido o ciclo completo: criação da ocorrência com fotografia, pedido de informações, início da resolução, registo do início dos trabalhos, resolução com prova, reabertura e histórico.
@@ -92,14 +105,11 @@ firebase deploy --only firestore:rules,storage
 
 - Ativar o Firebase Storage e validar o envio de multimédia de ponta a ponta.
 - Notificações push remotas (exigem Cloud Functions ou servidor); atualmente são locais.
-- Geofence de 20 m: alertar os autores quando um operador se aproxima de uma ocorrência ativa (requer localização em segundo plano).
 - Deteção de impactos com o acelerómetro.
-- Restrição do munícipe anónimo a 10 km da Praça da República e ocultação de dados no detalhe.
-- Mapa integrado (Google Maps Compose) em vez da app de mapas externa.
+- Restrição do munícipe anónimo a 10 km da Praça da República.
 - Autenticação com duplo fator (MFA) e recuperação de palavra-passe por email.
-- Edição e ativação/desativação de categorias existentes.
 - Internacionalização: inglês por omissão e português como língua adicional (os textos ainda estão no código).
-- Revisão de orientação landscape e acessibilidade.
+- Revisão de acessibilidade.
 - Testes unitários e de UI.
 - Relatório técnico em PDF.
 
@@ -112,12 +122,16 @@ app/src/main/java/pt/isec/amov/cityfix/
 │   ├── local/          # Persistência local
 │   ├── notifications/  # TicketNotifier: notificações locais
 │   ├── work/           # MediaUploadWorker e TicketLifecycleWorker (WorkManager)
-│   └── CityFixApp.kt   # Application: canal de notificações e agendamento de workers
-├── model/              # Utilizador, ocorrência, histórico e mensagens
+│   ├── MediaRepository.kt
+│   └── CityFixApp.kt   # Application: repositórios (by lazy), canal e workers
+├── model/              # Entidades e IncidentList (regras de negócio)
+├── services/           # ProximityService (geofence de 20 m)
 ├── ui/
-│   ├── screens/        # Ecrãs Compose
+│   ├── components/     # IncidentCard, galeria, mapa, dropdown de categorias
+│   ├── navigation/     # Destinations.kt (rotas type-safe)
+│   ├── screens/        # Ecrãs Compose sem estado
 │   └── theme/          # Tema visual
-├── utils/              # Validações, distâncias e preparação de multimédia
-├── viewmodel/          # Estado e regras da aplicação
-└── MainActivity.kt     # Navegação e ligação entre ecrãs e ViewModels
+├── utils/              # Validações, LocationTracker e multimédia
+├── viewmodel/          # ViewModels, UiStates e factories
+└── MainActivity.kt     # NavHost, TopAppBar contextual e ligação aos ViewModels
 ```

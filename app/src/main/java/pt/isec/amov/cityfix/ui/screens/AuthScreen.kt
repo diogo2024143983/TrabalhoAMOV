@@ -2,6 +2,7 @@ package pt.isec.amov.cityfix.ui.screens
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,8 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Person
@@ -21,327 +23,211 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import pt.isec.amov.cityfix.model.UserRole
+import pt.isec.amov.cityfix.ui.theme.CityFixTheme
+import pt.isec.amov.cityfix.viewmodel.AuthFormUiState
 
+/** Ecrã de login/registo sem estado: recebe o AuthFormUiState e emite eventos por lambdas. */
 @Composable
 fun AuthScreen(
-    startInRegisterMode: Boolean = false,
-    loading: Boolean,
-    message: String?,
-    onBack: () -> Unit,
-    onLogin: (String, String) -> Unit,
-    onRegister: (String, String, String, String, String, String, UserRole, Boolean, Uri?) -> Unit,
-    onGuest: () -> Unit
+    state: AuthFormUiState,
+    onRegisterModeChange: (Boolean) -> Unit,
+    onRoleSelected: (UserRole?) -> Unit,
+    onNameChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
+    onNifChange: (String) -> Unit,
+    onGeoreferenceChange: (String) -> Unit,
+    onImpactDetectionChange: (Boolean) -> Unit,
+    onPhotoChange: (Uri?) -> Unit,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onGuest: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    var isRegisterMode by remember(startInRegisterMode) { mutableStateOf(startInRegisterMode) }
-    // No registo, começa a null para perguntar primeiro qual o tipo de conta!
-    var selectedRole by remember { mutableStateOf<UserRole?>(null) }
-
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var nif by remember { mutableStateOf("") }
-    var georef by remember { mutableStateOf("") }
-    var impactEnabled by remember { mutableStateOf(false) }
-    var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
-
-    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) selectedPhotoUri = uri
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) onPhotoChange(uri)
     }
 
-    // PASSO 1 DO REGISTO: Escolher primeiro se é Munícipe ou Operador Municipal
-    if (isRegisterMode && selectedRole == null) {
+    // Passo 1 do registo: escolher o tipo de conta
+    if (state.isRegisterMode && state.role == null) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Criar Nova Conta", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "Selecione primeiro o tipo de conta que pretende criar:",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Text("Selecione primeiro o tipo de conta que pretende criar:", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            RoleCard(
+                icon = Icons.Default.Person,
+                title = "Conta de Munícipe",
+                subtitle = "Para cidadãos residentes reportarem e acompanharem ocorrências no município.",
+                color = MaterialTheme.colorScheme.primaryContainer,
+                onClick = { onRoleSelected(UserRole.CITIZEN) }
             )
-
-            Spacer(Modifier.height(8.dp))
-
-            // Cartão 1: Munícipe
-            Card(
-                onClick = { selectedRole = UserRole.CITIZEN },
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                shape = MaterialTheme.shapes.large
-            ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Conta de Munícipe", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(
-                            "Para cidadãos residentes reportarem e acompanharem ocorrências no município.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-
-            // Cartão 2: Operador Municipal
-            Card(
-                onClick = { selectedRole = UserRole.OPERATOR },
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                shape = MaterialTheme.shapes.large
-            ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Build,
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Operador Municipal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(
-                            "Para funcionários dos serviços camarários (requer email institucional @cm-coimbra.pt).",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            TextButton(
-                onClick = { isRegisterMode = false },
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            RoleCard(
+                icon = Icons.Default.Build,
+                title = "Operador Municipal",
+                subtitle = "Para funcionários dos serviços camarários (requer email institucional @cm-coimbra.pt).",
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                onClick = { onRoleSelected(UserRole.OPERATOR) }
+            )
+            TextButton(onClick = { onRegisterModeChange(false) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Já tens conta? Inicia sessão")
-            }
-
-            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                Text("Voltar")
             }
         }
         return
     }
 
-    val role = selectedRole ?: UserRole.CITIZEN
-
-    // PASSO 2 DO REGISTO (OU LOGIN): Preencher os dados
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(20.dp),
+    val role = state.role ?: UserRole.CITIZEN
+    Column(
+        modifier = modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        item {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = if (!isRegisterMode) "Iniciar Sessão"
-                    else if (role == UserRole.CITIZEN) "Registo de Munícipe"
-                    else "Registo de Operador Municipal",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                if (isRegisterMode) {
-                    TextButton(onClick = { selectedRole = null }) {
-                        Text("← Mudar tipo de conta")
-                    }
-                } else {
-                    Text(
-                        text = "Introduza o seu email e palavra-passe.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-        if (isRegisterMode) {
-            // Fotografia de Perfil Opcional no Registo
-            item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(
-                        modifier = Modifier.size(96.dp).clip(CircleShape),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        if (selectedPhotoUri != null) {
-                            AsyncImage(
-                                model = selectedPhotoUri,
-                                contentDescription = "Foto selecionada",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Sem foto",
-                                modifier = Modifier.padding(20.dp).fillMaxSize(),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    OutlinedButton(onClick = { photoPicker.launch("image/*") }) {
-                        Text(if (selectedPhotoUri != null) "Trocar Foto Escolhida" else "Adicionar Foto (Opcional)")
-                    }
-                }
-            }
-
-            item {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Nome Completo *") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            item {
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = { Text("Número de Telefone *") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            item {
-                OutlinedTextField(
-                    value = nif,
-                    onValueChange = { nif = it },
-                    label = { Text("NIF (Único) *") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            if (role == UserRole.CITIZEN) {
-                item {
-                    OutlinedTextField(
-                        value = georef,
-                        onValueChange = { georef = it },
-                        label = { Text("Morada / Georreferenciação *") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        FilterChip(
-                            selected = impactEnabled,
-                            onClick = { impactEnabled = !impactEnabled },
-                            label = { Text("Ativar Deteção Automática de Impactos") }
-                        )
-                    }
-                }
-            }
-        }
-
-        item {
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = {
-                    Text(
-                        if (role == UserRole.OPERATOR && isRegisterMode)
-                            "Email Municipal (@cm-coimbra.pt) *"
-                        else
-                            "Email *"
-                    )
+        Column(Modifier.fillMaxWidth()) {
+            Text(
+                text = when {
+                    !state.isRegisterMode -> "Iniciar Sessão"
+                    role == UserRole.CITIZEN -> "Registo de Munícipe"
+                    else -> "Registo de Operador Municipal"
                 },
-                modifier = Modifier.fillMaxWidth()
+                style = MaterialTheme.typography.headlineSmall
             )
-        }
-
-        item {
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Palavra-passe (mín. 6 carateres) *") },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        if (!message.isNullOrBlank()) {
-            item {
-                Text(message, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
-            }
-        }
-
-        item {
-            if (loading) {
-                CircularProgressIndicator()
+            if (state.isRegisterMode) {
+                TextButton(onClick = { onRoleSelected(null) }) { Text("← Mudar tipo de conta") }
             } else {
-                Button(
-                    onClick = {
-                        if (isRegisterMode) {
-                            onRegister(name, email, password, phone, nif, georef, role, impactEnabled, selectedPhotoUri)
-                        } else {
-                            onLogin(email, password)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (isRegisterMode) "Criar Conta" else "Entrar")
+                Text("Introduza o seu email e palavra-passe.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        if (state.isRegisterMode) {
+            Surface(modifier = Modifier.size(96.dp).clip(CircleShape), color = MaterialTheme.colorScheme.primaryContainer) {
+                if (state.photoUri != null) {
+                    AsyncImage(model = state.photoUri, contentDescription = "Foto selecionada", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                } else {
+                    Icon(Icons.Default.Person, contentDescription = "Sem foto", modifier = Modifier.padding(20.dp).fillMaxSize(), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+            }
+            OutlinedButton(onClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
+                Text(if (state.photoUri != null) "Trocar Foto" else "Adicionar Foto (Opcional)")
+            }
+            ValidatedField(state.name, onNameChange, "Nome Completo *", state.nameError)
+            ValidatedField(state.phone, onPhoneChange, "Número de Telefone *", state.phoneError, KeyboardType.Phone)
+            ValidatedField(state.nif, onNifChange, "NIF (Único) *", state.nifError, KeyboardType.Number)
+            if (role == UserRole.CITIZEN) {
+                ValidatedField(state.georeference, onGeoreferenceChange, "Morada / Georreferenciação *", state.georeferenceError)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = state.impactDetectionEnabled, onCheckedChange = onImpactDetectionChange)
+                    Spacer(Modifier.size(8.dp))
+                    Text("Ativar Deteção Automática de Impactos")
                 }
             }
         }
 
-        item {
-            TextButton(
-                onClick = {
-                    isRegisterMode = !isRegisterMode
-                    selectedRole = null
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (isRegisterMode) "Já tens conta? Inicia sessão" else "Não tens conta? Criar nova conta")
-            }
-        }
+        ValidatedField(
+            state.email, onEmailChange,
+            if (role == UserRole.OPERATOR && state.isRegisterMode) "Email Municipal (@cm-coimbra.pt) *" else "Email *",
+            state.emailError, KeyboardType.Email
+        )
+        OutlinedTextField(
+            value = state.password,
+            onValueChange = onPasswordChange,
+            label = { Text("Palavra-passe (mín. 6 carateres) *") },
+            isError = state.passwordError != null,
+            supportingText = state.passwordError?.let { { Text(it) } },
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        item {
-            OutlinedButton(onClick = onGuest, modifier = Modifier.fillMaxWidth()) {
-                Text("Continuar como Cidadão Anónimo")
-            }
-        }
+        state.message?.let { Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold) }
 
-        item {
-            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                Text("Voltar ao Início")
+        if (state.isLoading) {
+            CircularProgressIndicator()
+        } else {
+            Button(onClick = onSubmit, enabled = state.isValid, modifier = Modifier.fillMaxWidth()) {
+                Text(if (state.isRegisterMode) "Criar Conta" else "Entrar")
             }
         }
+        TextButton(onClick = { onRegisterModeChange(!state.isRegisterMode) }, modifier = Modifier.fillMaxWidth()) {
+            Text(if (state.isRegisterMode) "Já tens conta? Inicia sessão" else "Não tens conta? Criar nova conta")
+        }
+        if (!state.isRegisterMode) {
+            OutlinedButton(onClick = onGuest, modifier = Modifier.fillMaxWidth()) { Text("Continuar como Cidadão Anónimo") }
+        }
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun ValidatedField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    error: String?,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        isError = error != null,
+        supportingText = error?.let { { Text(it) } },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun RoleCard(icon: ImageVector, title: String, subtitle: String, color: Color, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = color),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(40.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AuthScreenPreview() {
+    CityFixTheme {
+        AuthScreen(
+            state = AuthFormUiState(email = "ana@", emailError = "Email inválido"),
+            onRegisterModeChange = {}, onRoleSelected = {}, onNameChange = {}, onPhoneChange = {}, onNifChange = {},
+            onGeoreferenceChange = {}, onImpactDetectionChange = {}, onPhotoChange = {}, onEmailChange = {},
+            onPasswordChange = {}, onSubmit = {}, onGuest = {}
+        )
     }
 }

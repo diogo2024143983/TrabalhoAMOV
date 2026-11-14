@@ -89,9 +89,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-
-
-    //googel maps compose
-    implementation("com.google.maps.android:maps-compose:4.4.1")
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    // Mapas OpenStreetMap (alternativa open-source apresentada em P10)
+    implementation(libs.osmdroid.android)
 }

@@ -10,12 +10,10 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import pt.isec.amov.cityfix.data.cloud.CityFixFirebaseRepository
-import pt.isec.amov.cityfix.data.local.CityFixLocalRepository
-import pt.isec.amov.cityfix.data.notifications.TicketNotifier
+import pt.isec.amov.cityfix.data.CityFixApp
+import pt.isec.amov.cityfix.model.BusinessRules
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.model.UserRole
-import pt.isec.amov.cityfix.utils.CityFixUtils
 import java.util.concurrent.TimeUnit
 
 /**
@@ -27,13 +25,14 @@ import java.util.concurrent.TimeUnit
 class TicketLifecycleWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
 
     override fun doWork(): Result {
-        val cloud = CityFixFirebaseRepository(applicationContext)
+        val app = applicationContext as CityFixApp
+        val cloud = app.cloudRepository
         if (!cloud.isAvailable) return Result.success()
         val uid = cloud.currentUserId ?: return Result.success()
 
-        val local = CityFixLocalRepository(applicationContext)
+        val local = app.localRepository
         val role = local.loadUser()?.role ?: UserRole.ANONYMOUS
-        val notifier = TicketNotifier(applicationContext)
+        val notifier = app.ticketNotifier
         val now = System.currentTimeMillis()
 
         var tickets = cloud.fetchTicketsBlocking()
@@ -41,7 +40,7 @@ class TicketLifecycleWorker(context: Context, params: WorkerParameters) : Worker
 
         val expired = tickets.filter {
             it.status == IncidentStatus.RESOLVED && it.resolvedAt != null &&
-                now - it.resolvedAt >= CityFixUtils.REOPEN_WINDOW_MS
+                now - it.resolvedAt >= BusinessRules.REOPEN_WINDOW_MS
         }
         if (expired.isNotEmpty()) {
             expired.forEach { cloud.closeIfExpiredBlocking(it.id, now) }

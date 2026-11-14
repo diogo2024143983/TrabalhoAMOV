@@ -36,7 +36,7 @@ class CityFixMessagingService : FirebaseMessagingService() {
     }
 
     override fun onNewToken(token: String) {
-        CityFixFirebaseRepository(this).saveMessagingToken(token)
+        (applicationContext as pt.isec.amov.cityfix.data.CityFixApp).cloudRepository.saveMessagingToken(token)
     }
 
     companion object {

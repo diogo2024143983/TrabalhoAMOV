@@ -1,8 +1,7 @@
 package pt.isec.amov.cityfix.viewmodel
 
-import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
@@ -11,37 +10,52 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import pt.isec.amov.cityfix.data.MediaRepository
 import pt.isec.amov.cityfix.data.cloud.CityFixFirebaseRepository
 import pt.isec.amov.cityfix.data.local.CityFixLocalRepository
 import pt.isec.amov.cityfix.data.notifications.TicketNotifier
-import pt.isec.amov.cityfix.data.work.MediaUploadWorker
+import pt.isec.amov.cityfix.model.BusinessRules
 import pt.isec.amov.cityfix.model.CityFixUser
-import pt.isec.amov.cityfix.model.Incident
 import pt.isec.amov.cityfix.model.IncidentCategory
+import pt.isec.amov.cityfix.model.IncidentList
 import pt.isec.amov.cityfix.model.IncidentMessage
-import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.model.IncidentStatus
-import pt.isec.amov.cityfix.model.StatusChange
 import pt.isec.amov.cityfix.model.UserRole
-import pt.isec.amov.cityfix.utils.CityFixUtils
-import pt.isec.amov.cityfix.utils.MediaUtils
 import java.util.UUID
 
 data class IncidentUiState(
-    val incidents: List<Incident> = emptyList(),
+    val incidents: IncidentList = IncidentList(),
     val categories: List<IncidentCategory> = emptyList(),
-    val selectedIncident: Incident? = null,
+    val selectedIncidentId: String? = null,
     val messages: List<IncidentMessage> = emptyList(),
     val loading: Boolean = false,
     val message: String? = null
-)
+) {
+    val selectedIncident get() = selectedIncidentId?.let(incidents::findById)
 
-class IncidentViewModel(application: Application) : AndroidViewModel(application) {
-    private val localRepository = CityFixLocalRepository(application)
-    private val cloudRepository = CityFixFirebaseRepository(application)
-    private val notifier = TicketNotifier(application)
+    /** Categorias ativas definidas pela autarquia (ou as tipologias base, se ainda não existirem). */
+    val activeCategories: List<IncidentCategory>
+        get() = categories.filter { it.active }.ifEmpty { DEFAULT_CATEGORIES }
 
+    companion object {
+        val DEFAULT_CATEGORIES = IncidentList.sortCategories(
+            listOf(
+                IncidentCategory(id = "vias", name = "Vias Públicas"),
+                IncidentCategory(id = "agua", name = "Água"),
+                IncidentCategory(id = "iluminacao", name = "Iluminação"),
+                IncidentCategory(id = "saneamento", name = "Saneamento"),
+                IncidentCategory(id = "residuos", name = "Resíduos")
+            )
+        )
+    }
+}
+
+class IncidentViewModel(
+    private val cloudRepository: CityFixFirebaseRepository,
+    private val localRepository: CityFixLocalRepository,
+    private val notifier: TicketNotifier,
+    private val mediaRepository: MediaRepository
+) : ViewModel() {
     private var ticketsListener: ListenerRegistration? = null
     private var categoriesListener: ListenerRegistration? = null
     private var messagesListener: ListenerRegistration? = null
@@ -49,14 +63,16 @@ class IncidentViewModel(application: Application) : AndroidViewModel(application
     /** Tickets cujo fecho automático já foi tentado nesta sessão (evita repetir a transação). */
     private val closeAttempted = mutableSetOf<String>()
 
-    private val _state = MutableStateFlow(
-        IncidentUiState(
-            incidents = localRepository.loadIncidents(emptyList())
-        )
-    )
+    private val _state = MutableStateFlow(IncidentUiState(incidents = IncidentList(localRepository.loadIncidents(emptyList()))))
     val state: StateFlow<IncidentUiState> = _state.asStateFlow()
 
     init {
+        listenToTickets()
+        listenToCategories()
+    }
+
+    /** Volta a subscrever (ex.: depois de iniciar sessão, as regras do Firestore passam a permitir a leitura). */
+    fun refresh() {
         listenToTickets()
         listenToCategories()
     }
@@ -65,34 +81,25 @@ class IncidentViewModel(application: Application) : AndroidViewModel(application
         ticketsListener?.remove()
         ticketsListener = cloudRepository.observeTickets(
             onChanged = { tickets ->
-                val updatedSelected = _state.value.selectedIncident?.let { current ->
-                    tickets.firstOrNull { it.id == current.id } ?: current
-                }
-                _state.update {
-                    it.copy(
-                        incidents = tickets,
-                        selectedIncident = updatedSelected,
-                        message = null
-                    )
-                }
+                _state.update { it.copy(incidents = IncidentList(tickets), message = null) }
 
                 val uid = cloudRepository.currentUserId
                 val role = localRepository.loadUser()?.role ?: UserRole.ANONYMOUS
                 notifier.notifyChanges(localRepository.loadIncidents(emptyList()), tickets, uid, role)
                 notifier.notifyClosingSoon(tickets, uid)
                 localRepository.saveIncidents(tickets)
-                closeExpiredTickets(tickets)
+                closeExpiredTickets()
             },
             onError = { e -> _state.update { it.copy(message = e.localizedMessage) } }
         )
     }
 
-    private fun closeExpiredTickets(tickets: List<Incident>) {
+    private fun closeExpiredTickets() {
         if (cloudRepository.currentUserId == null) return
         val now = System.currentTimeMillis()
-        val expired = tickets.filter {
+        val expired = _state.value.incidents.rawList().filter {
             it.status == IncidentStatus.RESOLVED && it.resolvedAt != null &&
-                now - it.resolvedAt >= CityFixUtils.REOPEN_WINDOW_MS && closeAttempted.add(it.id)
+                now - it.resolvedAt >= BusinessRules.REOPEN_WINDOW_MS && closeAttempted.add(it.id)
         }
         if (expired.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
@@ -103,119 +110,63 @@ class IncidentViewModel(application: Application) : AndroidViewModel(application
     private fun listenToCategories() {
         categoriesListener?.remove()
         categoriesListener = cloudRepository.observeCategories(
-            onChanged = { cats ->
-                _state.update { it.copy(categories = cats) }
-            }
+            onChanged = { cats -> _state.update { it.copy(categories = IncidentList.sortCategories(cats)) } }
         )
     }
 
-    private fun actorOf(user: CityFixUser): CityFixUser =
-        user.copy(id = cloudRepository.currentUserId ?: user.id)
+    private fun actorOf(user: CityFixUser): CityFixUser = user.copy(id = cloudRepository.currentUserId ?: user.id)
+
+    fun supportIncident(ticketId: String, user: CityFixUser) {
+        cloudRepository.addSupporter(ticketId, cloudRepository.currentUserId ?: user.id)
+    }
 
     // =========================================================================
-    // ABERTURA DE OCORRÊNCIAS
+    // DETALHE E MENSAGENS
     // =========================================================================
 
-    fun addIncident(
-        user: CityFixUser,
-        title: String,
-        description: String,
-        categoryId: String,
-        categoryName: String,
-        situation: IncidentSituation,
-        isPublic: Boolean,
-        latitude: Double,
-        longitude: Double,
-        locationAddress: String,
-        mediaUri: Uri?,
-        onComplete: (Boolean, String?) -> Unit
-    ) {
-        if (user.role == UserRole.CITIZEN && !user.active) {
-            onComplete(false, "A tua conta aguarda validação do NIF por um operador municipal.")
-            return
-        }
-        if (mediaUri == null) {
-            onComplete(false, "É obrigatório anexar uma fotografia ou vídeo.")
-            return
-        }
+    fun selectIncident(ticketId: String) {
+        if (_state.value.selectedIncidentId == ticketId) return
+        messagesListener?.remove()
+        messagesListener = cloudRepository.observeMessages(ticketId, onChanged = { msgs ->
+            _state.update { it.copy(messages = msgs) }
+        })
+        _state.update { it.copy(selectedIncidentId = ticketId, messages = emptyList()) }
+    }
 
-        // Ocorrência de grupo: mesma categoria/situação a menos de 10 metros
-        val duplicate = _state.value.incidents.firstOrNull { existing ->
-            existing.status != IncidentStatus.CLOSED &&
-                existing.categoryId == categoryId &&
-                existing.situation == situation &&
-                CityFixUtils.distanceMeters(existing.latitude, existing.longitude, latitude, longitude) <=
-                CityFixUtils.DUPLICATE_GROUP_RADIUS_METERS
-        }
+    fun sendMessage(user: CityFixUser, text: String) {
+        val incident = _state.value.selectedIncident ?: return
+        val cleanText = text.trim()
+        if (cleanText.isBlank() || incident.status == IncidentStatus.CLOSED) return
 
-        if (duplicate != null) {
-            val uid = cloudRepository.currentUserId ?: user.id
-            cloudRepository.addSupporter(
-                ticketId = duplicate.id,
-                userId = uid,
-                onSuccess = {
-                    onComplete(true, "Já existia uma ocorrência igual a menos de 10m! Foste adicionado como apoiante.")
-                },
-                onError = { e -> onComplete(false, e.localizedMessage) }
+        postMessage(user, incident.id, cleanText)
+
+        // Resposta a um pedido de informações feito pela outra parte: o ticket volta ao estado anterior
+        if (incident.status == IncidentStatus.INFORMATION_REQUEST &&
+            incident.infoRequestedByRole.isNotBlank() &&
+            incident.infoRequestedByRole != user.role.name
+        ) {
+            val previous = runCatching { IncidentStatus.valueOf(incident.statusBeforeInfoRequest) }.getOrDefault(IncidentStatus.OPEN)
+            cloudRepository.changeStatus(
+                ticketId = incident.id,
+                newStatus = previous,
+                actor = actorOf(user),
+                note = "Esclarecimento prestado",
+                extra = mapOf("infoRequestedByRole" to "", "statusBeforeInfoRequest" to "")
             )
-            return
-        }
-
-        _state.update { it.copy(loading = true, message = null) }
-        val ticketId = UUID.randomUUID().toString()
-
-        viewModelScope.launch {
-            // Compressão e geração da miniatura fora da main thread
-            val prepared = withContext(Dispatchers.IO) {
-                MediaUtils.prepare(getApplication(), mediaUri, "ticket")
-            }
-            if (prepared == null) {
-                _state.update { it.copy(loading = false) }
-                onComplete(false, "Não foi possível processar o ficheiro multimédia.")
-                return@launch
-            }
-
-            val actor = actorOf(user)
-            val now = System.currentTimeMillis()
-            val incident = Incident(
-                id = ticketId,
-                title = title.trim(),
-                description = description.trim(),
-                categoryId = categoryId,
-                categoryName = categoryName,
-                situation = situation,
-                status = IncidentStatus.OPEN,
-                isPublic = isPublic,
-                authorId = actor.id,
-                authorName = user.name,
-                authorPhone = user.phone,
-                latitude = latitude,
-                longitude = longitude,
-                locationAddress = locationAddress.trim(),
-                isVideo = prepared.isVideo,
-                mediaPending = true,
-                createdAt = now,
-                history = listOf(
-                    StatusChange(IncidentStatus.OPEN, now, actor.id, actor.name, actor.role, "Ocorrência submetida")
-                ),
-                supporterIds = listOfNotNull(actor.id.takeIf { it.isNotBlank() })
-            )
-
-            // A escrita fica em cache e sincroniza quando houver rede; o upload pesado fica no WorkManager.
-            cloudRepository.createTicket(
-                incident = incident,
-                onError = { e -> _state.update { it.copy(message = e.localizedMessage) } }
-            )
-            MediaUploadWorker.enqueue(getApplication(), ticketId, MediaUploadWorker.KIND_MEDIA, prepared)
-
-            _state.update { it.copy(loading = false) }
-            onComplete(true, "Ocorrência registada! A multimédia será enviada em segundo plano.")
         }
     }
 
-    fun supportIncident(ticketId: String, userId: String) {
-        val uid = cloudRepository.currentUserId ?: userId
-        cloudRepository.addSupporter(ticketId, uid)
+    private fun postMessage(user: CityFixUser, ticketId: String, text: String) {
+        val message = IncidentMessage(
+            id = UUID.randomUUID().toString(),
+            ticketId = ticketId,
+            authorId = cloudRepository.currentUserId ?: user.id,
+            authorName = user.name,
+            authorRole = user.role,
+            text = text
+        )
+        cloudRepository.sendMessage(message)
+        cloudRepository.updateLastMessage(ticketId, message)
     }
 
     // =========================================================================
@@ -247,7 +198,7 @@ class IncidentViewModel(application: Application) : AndroidViewModel(application
         val clean = text.trim()
         if (clean.isBlank() || incident.status in listOf(IncidentStatus.CLOSED, IncidentStatus.RESOLVED)) return
 
-        postMessage(user, incident, clean)
+        postMessage(user, incident.id, clean)
         if (incident.status != IncidentStatus.INFORMATION_REQUEST) {
             cloudRepository.changeStatus(
                 ticketId = incident.id,
@@ -271,9 +222,7 @@ class IncidentViewModel(application: Application) : AndroidViewModel(application
         }
         _state.update { it.copy(loading = true) }
         viewModelScope.launch {
-            val prepared = withContext(Dispatchers.IO) {
-                MediaUtils.prepare(getApplication(), proofUri, "proof")
-            }
+            val prepared = mediaRepository.prepare(proofUri, "proof")
             _state.update { it.copy(loading = false) }
             if (prepared == null) {
                 onComplete(false, "Não foi possível processar a prova de resolução.")
@@ -290,97 +239,30 @@ class IncidentViewModel(application: Application) : AndroidViewModel(application
                     "reopenReason" to ""
                 )
             )
-            MediaUploadWorker.enqueue(getApplication(), incident.id, MediaUploadWorker.KIND_PROOF, prepared)
+            mediaRepository.enqueueResolutionProof(incident.id, prepared)
             onComplete(true, null)
         }
     }
 
-    fun reopenIncident(
-        user: CityFixUser,
-        ticketId: String,
-        reason: String,
-        onResult: (Boolean, String?) -> Unit
-    ) {
-        val incident = _state.value.incidents.firstOrNull { it.id == ticketId }
-        if (incident == null) {
-            onResult(false, "Ocorrência não encontrada.")
-            return
+    fun reopenIncident(user: CityFixUser, reason: String, onResult: (Boolean, String?) -> Unit) {
+        val incident = _state.value.selectedIncident
+        when {
+            incident == null -> onResult(false, "Ocorrência não encontrada.")
+            !IncidentList.canReopen(incident) -> onResult(false, "Prazo de 5 dias expirado. A ocorrência encontra-se encerrada.")
+            reason.isBlank() -> onResult(false, "É obrigatório justificar o motivo da reabertura.")
+            else -> {
+                cloudRepository.changeStatus(
+                    ticketId = incident.id,
+                    newStatus = IncidentStatus.OPEN,
+                    actor = actorOf(user),
+                    note = "Reaberto: ${reason.trim()}",
+                    // Novo ciclo de resolução: o início dos trabalhos anterior deixa de se aplicar
+                    extra = mapOf("reopenReason" to reason.trim(), "resolvedAt" to null, "workStartedAt" to null),
+                    onError = { e -> onResult(false, e.localizedMessage) }
+                )
+                onResult(true, null)
+            }
         }
-        if (!CityFixUtils.canReopenIncident(incident)) {
-            onResult(false, "Prazo de 5 dias expirado. A ocorrência encontra-se encerrada.")
-            return
-        }
-        if (reason.trim().isBlank()) {
-            onResult(false, "É obrigatório justificar o motivo da reabertura.")
-            return
-        }
-
-        cloudRepository.changeStatus(
-            ticketId = ticketId,
-            newStatus = IncidentStatus.OPEN,
-            actor = actorOf(user),
-            note = "Reaberto: ${reason.trim()}",
-            extra = mapOf("reopenReason" to reason.trim(), "resolvedAt" to null),
-            onError = { e -> onResult(false, e.localizedMessage) }
-        )
-        onResult(true, null)
-    }
-
-    // =========================================================================
-    // MENSAGENS
-    // =========================================================================
-
-    fun selectIncident(incident: Incident?) {
-        messagesListener?.remove()
-        messagesListener = incident?.let {
-            cloudRepository.observeMessages(it.id, onChanged = { msgs ->
-                _state.update { state -> state.copy(messages = msgs) }
-            })
-        }
-        _state.update { it.copy(selectedIncident = incident, messages = emptyList()) }
-    }
-
-    fun selectIncidentById(ticketId: String): Boolean {
-        val incident = _state.value.incidents.firstOrNull { it.id == ticketId } ?: return false
-        selectIncident(incident)
-        return true
-    }
-
-    fun sendMessage(user: CityFixUser, text: String) {
-        val incident = _state.value.selectedIncident ?: return
-        val cleanText = text.trim()
-        if (cleanText.isBlank() || incident.status == IncidentStatus.CLOSED) return
-
-        postMessage(user, incident, cleanText)
-
-        // Resposta a um pedido de informações feito pela outra parte: o ticket volta ao estado anterior
-        if (incident.status == IncidentStatus.INFORMATION_REQUEST &&
-            incident.infoRequestedByRole.isNotBlank() &&
-            incident.infoRequestedByRole != user.role.name
-        ) {
-            val previous = runCatching { IncidentStatus.valueOf(incident.statusBeforeInfoRequest) }
-                .getOrDefault(IncidentStatus.OPEN)
-            cloudRepository.changeStatus(
-                ticketId = incident.id,
-                newStatus = previous,
-                actor = actorOf(user),
-                note = "Esclarecimento prestado",
-                extra = mapOf("infoRequestedByRole" to "", "statusBeforeInfoRequest" to "")
-            )
-        }
-    }
-
-    private fun postMessage(user: CityFixUser, incident: Incident, text: String) {
-        val message = IncidentMessage(
-            id = UUID.randomUUID().toString(),
-            ticketId = incident.id,
-            authorId = cloudRepository.currentUserId ?: user.id,
-            authorName = user.name,
-            authorRole = user.role,
-            text = text
-        )
-        cloudRepository.sendMessage(message)
-        cloudRepository.updateLastMessage(incident.id, message)
     }
 
     override fun onCleared() {

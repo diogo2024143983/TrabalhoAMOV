@@ -14,7 +14,7 @@ import pt.isec.amov.cityfix.data.cloud.CityFixMessagingService
 import pt.isec.amov.cityfix.model.Incident
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.model.UserRole
-import pt.isec.amov.cityfix.utils.CityFixUtils
+import pt.isec.amov.cityfix.model.BusinessRules
 
 /**
  * Gera notificações locais a partir da comparação entre o último snapshot conhecido dos tickets
@@ -54,7 +54,25 @@ class TicketNotifier(private val context: Context) {
             if (ticket.lastMessageAt > old.lastMessageAt && ticket.lastMessageAuthorId != myUid) {
                 show(ticket.id, 2, "Nova mensagem: ${ticket.title}", ticket.lastMessageText)
             }
+
+            // Geofence de 20 m: o operador aproximou-se de uma ocorrência que o municípe acompanha
+            if (myRole != UserRole.OPERATOR && ticket.operatorNearbyAt > old.operatorNearbyAt) {
+                show(
+                    ticket.id, 4,
+                    "A equipa camarária está na área",
+                    "${ticket.operatorNearbyName.ifBlank { "Um operador" }} está junto de \"${ticket.title}\"."
+                )
+            }
         }
+    }
+
+    /** Notificação para o próprio operador quando entra no raio de 20 m de uma ocorrência ativa. */
+    fun notifyOperatorNearIncident(ticket: Incident, distanceMeters: Float) {
+        show(
+            ticket.id, 5,
+            "Ocorrência ativa nas proximidades",
+            "Está a %.0f m de \"%s\". Os autores foram avisados.".format(distanceMeters, ticket.title)
+        )
     }
 
     /** Alerta o munícipe quando faltam 24 horas para o fecho definitivo de um ticket resolvido. */
@@ -66,7 +84,7 @@ class TicketNotifier(private val context: Context) {
         current.filter { it.status == IncidentStatus.RESOLVED && (it.authorId == myUid || myUid in it.supporterIds) }
             .forEach { ticket ->
                 val resolvedAt = ticket.resolvedAt ?: return@forEach
-                val remaining = resolvedAt + CityFixUtils.REOPEN_WINDOW_MS - now
+                val remaining = resolvedAt + BusinessRules.REOPEN_WINDOW_MS - now
                 val key = "${ticket.id}_$resolvedAt"
                 if (remaining in 1..DAY_MS && key !in alreadyNotified) {
                     show(
@@ -97,6 +115,9 @@ class TicketNotifier(private val context: Context) {
             context, ticketId.hashCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        // Agrupamento por ticket com resumo próprio: evita o agrupamento automático do sistema,
+        // cujo toque abriria a app sem indicar qual o ticket.
+        val group = "ticket_$ticketId"
         val notification = NotificationCompat.Builder(context, CityFixMessagingService.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
@@ -104,8 +125,20 @@ class TicketNotifier(private val context: Context) {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .setGroup(group)
             .build()
-        NotificationManagerCompat.from(context).notify(ticketId.hashCode() * 31 + kind, notification)
+        val summary = NotificationCompat.Builder(context, CityFixMessagingService.CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setGroup(group)
+            .setGroupSummary(true)
+            .build()
+        val manager = NotificationManagerCompat.from(context)
+        manager.notify(ticketId.hashCode() * 31 + kind, notification)
+        manager.notify(ticketId.hashCode() * 31 + SUMMARY_ID, summary)
     }
 
     private fun statusName(status: IncidentStatus) = when (status) {
@@ -121,5 +154,6 @@ class TicketNotifier(private val context: Context) {
         private const val PREFS = "cityfix_notifications"
         private const val KEY_CLOSING_NOTIFIED = "closing_notified"
         private const val DAY_MS = 24L * 60 * 60 * 1000
+        private const val SUMMARY_ID = 9
     }
 }

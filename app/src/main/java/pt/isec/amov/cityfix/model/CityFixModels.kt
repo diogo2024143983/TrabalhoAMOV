@@ -18,6 +18,7 @@ data class IncidentCategory(
     val name: String = "",
     val active: Boolean = true
 )
+
 @Serializable
 data class CityFixUser(
     val id: String = "",
@@ -44,6 +45,14 @@ data class StatusChange(
     val note: String = ""
 )
 
+/** Fotografia ou vídeo anexado a uma ocorrência (já enviado para a cloud). */
+@Serializable
+data class MediaAttachment(
+    val url: String = "",
+    val thumbnailUrl: String = "",
+    val isVideo: Boolean = false
+)
+
 @Serializable
 data class Incident(
     val id: String = "",
@@ -60,11 +69,9 @@ data class Incident(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val locationAddress: String = "",
-    // Multimédia da ocorrência (preenchida pelo MediaUploadWorker)
-    val mediaUrl: String = "",
-    val thumbnailUrl: String = "",
-    val isVideo: Boolean = false,
-    val mediaPending: Boolean = false,
+    // Multimédia da ocorrência (até 3 anexos, preenchidos pelo MediaUploadWorker)
+    val media: List<MediaAttachment> = emptyList(),
+    val mediaPendingCount: Int = 0,
     // Prova de resolução (foto/vídeo carregado pelo operador)
     val resolutionProofUrl: String = "",
     val resolutionProofThumbUrl: String = "",
@@ -85,8 +92,20 @@ data class Incident(
     val lastMessageAt: Long = 0L,
     val lastMessageAuthorId: String = "",
     val lastMessageText: String = "",
+    // Geofence de 20 m: última vez que um operador esteve junto da ocorrência
+    val operatorNearbyAt: Long = 0L,
+    val operatorNearbyName: String = "",
     val supporterIds: List<String> = emptyList()
-)
+) {
+    val isActive: Boolean
+        get() = status == IncidentStatus.OPEN ||
+            status == IncidentStatus.INFORMATION_REQUEST ||
+            status == IncidentStatus.IN_RESOLUTION
+
+    /** Miniatura do primeiro anexo (usada na lista). */
+    val coverThumbnail: String
+        get() = media.firstOrNull()?.let { it.thumbnailUrl.ifBlank { if (it.isVideo) "" else it.url } }.orEmpty()
+}
 
 @Serializable
 data class IncidentMessage(

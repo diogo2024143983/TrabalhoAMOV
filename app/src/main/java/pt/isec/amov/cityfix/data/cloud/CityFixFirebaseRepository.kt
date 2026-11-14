@@ -17,9 +17,11 @@ import pt.isec.amov.cityfix.model.IncidentCategory
 import pt.isec.amov.cityfix.model.IncidentMessage
 import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.model.IncidentStatus
+import pt.isec.amov.cityfix.model.MediaAttachment
 import pt.isec.amov.cityfix.model.StatusChange
 import pt.isec.amov.cityfix.model.UserRole
-import pt.isec.amov.cityfix.utils.CityFixUtils
+import pt.isec.amov.cityfix.model.BusinessRules
+import java.io.File
 import java.util.UUID
 
 class CityFixFirebaseRepository(context: Context) {
@@ -331,7 +333,7 @@ class CityFixFirebaseRepository(context: Context) {
                 val status = snap.getString("status")
                 val resolvedAt = snap.getLong("resolvedAt")
                 if (status == IncidentStatus.RESOLVED.name && resolvedAt != null &&
-                    now - resolvedAt >= CityFixUtils.REOPEN_WINDOW_MS
+                    now - resolvedAt >= BusinessRules.REOPEN_WINDOW_MS
                 ) {
                     tx.update(ref, statusUpdates(IncidentStatus.CLOSED, SYSTEM_ACTOR, "Encerrado automaticamente após 5 dias", now))
                     true
@@ -531,6 +533,48 @@ class CityFixFirebaseRepository(context: Context) {
             .addOnFailureListener(onError)
     }
 
+    /** Envio síncrono de um ficheiro local. Apenas para Workers (thread de background). */
+    fun uploadFileBlocking(file: File, storagePath: String): String {
+        val storageInstance = storage ?: throw IllegalStateException("Firebase Storage não está configurado.")
+        val ref = storageInstance.reference.child(storagePath)
+        Tasks.await(ref.putFile(Uri.fromFile(file)))
+        return Tasks.await(ref.downloadUrl).toString()
+    }
+
+    /** Acrescenta um anexo já enviado ao ticket e decrementa o contador de envios pendentes. */
+    fun attachMediaBlocking(ticketId: String, attachment: MediaAttachment) {
+        val database = firestore ?: throw IllegalStateException("Firestore indisponível.")
+        Tasks.await(
+            database.collection(TICKETS_COLLECTION).document(ticketId).update(
+                mapOf(
+                    "media" to FieldValue.arrayUnion(attachment.toMap()),
+                    "mediaPendingCount" to FieldValue.increment(-1)
+                )
+            )
+        )
+    }
+
+    fun attachResolutionProofBlocking(ticketId: String, attachment: MediaAttachment) {
+        val database = firestore ?: throw IllegalStateException("Firestore indisponível.")
+        Tasks.await(
+            database.collection(TICKETS_COLLECTION).document(ticketId).update(
+                mapOf(
+                    "resolutionProofUrl" to attachment.url,
+                    "resolutionProofThumbUrl" to attachment.thumbnailUrl,
+                    "resolutionProofIsVideo" to attachment.isVideo,
+                    "proofPending" to false
+                )
+            )
+        )
+    }
+
+    /** Geofence de 20 m: regista que um operador está junto da ocorrência (os autores são notificados). */
+    fun markOperatorNearby(ticketId: String, operatorName: String) {
+        val database = firestore ?: return
+        database.collection(TICKETS_COLLECTION).document(ticketId)
+            .update(mapOf("operatorNearbyAt" to System.currentTimeMillis(), "operatorNearbyName" to operatorName))
+    }
+
     // =========================================================================
     // NOTIFICAÇÕES (Firebase Cloud Messaging)
     // =========================================================================
@@ -567,10 +611,8 @@ class CityFixFirebaseRepository(context: Context) {
         "latitude" to latitude,
         "longitude" to longitude,
         "locationAddress" to locationAddress,
-        "mediaUrl" to mediaUrl,
-        "thumbnailUrl" to thumbnailUrl,
-        "isVideo" to isVideo,
-        "mediaPending" to mediaPending,
+        "media" to media.map { it.toMap() },
+        "mediaPendingCount" to mediaPendingCount,
         "resolutionProofUrl" to resolutionProofUrl,
         "resolutionProofThumbUrl" to resolutionProofThumbUrl,
         "resolutionProofIsVideo" to resolutionProofIsVideo,
@@ -587,8 +629,34 @@ class CityFixFirebaseRepository(context: Context) {
         "lastMessageAt" to lastMessageAt,
         "lastMessageAuthorId" to lastMessageAuthorId,
         "lastMessageText" to lastMessageText,
+        "operatorNearbyAt" to operatorNearbyAt,
+        "operatorNearbyName" to operatorNearbyName,
         "supporterIds" to supporterIds
     )
+
+    private fun MediaAttachment.toMap(): Map<String, Any?> = mapOf(
+        "url" to url,
+        "thumbnailUrl" to thumbnailUrl,
+        "isVideo" to isVideo
+    )
+
+    /** Lê a lista de anexos; tickets antigos guardavam um único anexo em mediaUrl/thumbnailUrl/isVideo. */
+    private fun DocumentSnapshot.readMedia(): List<MediaAttachment> {
+        val list = (get("media") as? List<*>)?.mapNotNull { item ->
+            (item as? Map<*, *>)?.let {
+                MediaAttachment(
+                    url = it["url"]?.toString().orEmpty(),
+                    thumbnailUrl = it["thumbnailUrl"]?.toString().orEmpty(),
+                    isVideo = it["isVideo"] as? Boolean ?: false
+                )
+            }
+        }.orEmpty()
+        if (list.isNotEmpty()) return list
+        val legacyUrl = getString("mediaUrl").orEmpty()
+        return if (legacyUrl.isBlank()) emptyList() else listOf(
+            MediaAttachment(legacyUrl, getString("thumbnailUrl").orEmpty(), getBoolean("isVideo") ?: false)
+        )
+    }
 
     private fun StatusChange.toMap(): Map<String, Any?> = mapOf(
         "status" to status.name,
@@ -631,10 +699,9 @@ class CityFixFirebaseRepository(context: Context) {
                 latitude = getDouble("latitude") ?: 0.0,
                 longitude = getDouble("longitude") ?: 0.0,
                 locationAddress = getString("locationAddress").orEmpty(),
-                mediaUrl = getString("mediaUrl").orEmpty(),
-                thumbnailUrl = getString("thumbnailUrl").orEmpty(),
-                isVideo = getBoolean("isVideo") ?: false,
-                mediaPending = getBoolean("mediaPending") ?: false,
+                media = readMedia(),
+                mediaPendingCount = (getLong("mediaPendingCount")
+                    ?: if (getBoolean("mediaPending") == true) 1L else 0L).toInt().coerceAtLeast(0),
                 resolutionProofUrl = getString("resolutionProofUrl").orEmpty(),
                 resolutionProofThumbUrl = getString("resolutionProofThumbUrl").orEmpty(),
                 resolutionProofIsVideo = getBoolean("resolutionProofIsVideo") ?: false,
@@ -654,6 +721,8 @@ class CityFixFirebaseRepository(context: Context) {
                 lastMessageAt = getLong("lastMessageAt") ?: 0L,
                 lastMessageAuthorId = getString("lastMessageAuthorId").orEmpty(),
                 lastMessageText = getString("lastMessageText").orEmpty(),
+                operatorNearbyAt = getLong("operatorNearbyAt") ?: 0L,
+                operatorNearbyName = getString("operatorNearbyName").orEmpty(),
                 supporterIds = (get("supporterIds") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
             )
         }.getOrNull()
