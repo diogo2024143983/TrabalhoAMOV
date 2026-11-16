@@ -11,8 +11,9 @@ data object DashboardRoute
 @Serializable
 data object IncidentListRoute
 
+/** [fromImpact] = aberto a partir da deteção automática de impactos (formulário pré-preenchido). */
 @Serializable
-data object ReportIncidentRoute
+data class ReportIncidentRoute(val fromImpact: Boolean = false)
 
 @Serializable
 data class IncidentDetailRoute(val incidentId: String)

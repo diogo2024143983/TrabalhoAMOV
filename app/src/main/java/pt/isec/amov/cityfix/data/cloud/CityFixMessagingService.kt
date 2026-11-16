@@ -10,17 +10,24 @@ import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import pt.isec.amov.cityfix.MainActivity
+import pt.isec.amov.cityfix.data.notifications.TicketNotifier
 
 class CityFixMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
+        android.util.Log.i("CityFixFCM", "Mensagem recebida de ${message.from}: ${message.notification?.title}")
         val title = message.notification?.title ?: message.data["title"] ?: "CityFix"
-        val body = message.notification?.body ?: message.data["body"] ?: "There is an update on a reported incident."
+        val body = message.notification?.body ?: message.data["body"] ?: "Há uma atualização numa ocorrência."
+        // Dado opcional "ticketId" (enviado na consola em "Opções adicionais → Dados personalizados"):
+        // ao tocar na notificação abre o ticket. Com a app em segundo plano o sistema entrega os
+        // mesmos dados como extras do Intent, lidos pela MainActivity com a mesma chave.
+        val ticketId = message.data[TicketNotifier.EXTRA_TICKET_ID]
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            ticketId?.let { putExtra(TicketNotifier.EXTRA_TICKET_ID, it) }
         }
         val pendingIntent = PendingIntent.getActivity(
             this,
-            0,
+            ticketId?.hashCode() ?: 0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

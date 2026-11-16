@@ -1,6 +1,8 @@
 package pt.isec.amov.cityfix.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,10 +28,14 @@ class AuthViewModel(
 ) : ViewModel() {
     private var userListener: ListenerRegistration? = null
 
-    private val _state = MutableStateFlow(AuthUiState(user = localRepository.loadUser() ?: ANONYMOUS_USER))
+    private val _state = MutableStateFlow(AuthUiState())
     val state: StateFlow<AuthUiState> = _state.asStateFlow()
 
     init {
+        // Sessão guardada em DataStore: restaura o perfil sem esperar pela rede
+        viewModelScope.launch {
+            localRepository.loadUser()?.let { saved -> _state.update { it.copy(user = saved) } }
+        }
         cloudRepository.currentUserId?.let(::observeUser)
     }
 
@@ -55,9 +61,16 @@ class AuthViewModel(
         })
     }
 
+    /** Perfil cujos tópicos FCM já foram subscritos nesta execução (evita repetir a cada snapshot). */
+    private var subscribedRole: UserRole? = null
+
     private fun setUser(user: CityFixUser) {
+        if (user.role != subscribedRole) {
+            subscribedRole = user.role
+            cloudRepository.subscribeToRoleTopic(user.role)
+        }
         _state.update { it.copy(user = user, loading = false) }
-        localRepository.saveUser(user)
+        viewModelScope.launch { localRepository.saveUser(user) }
     }
 
     fun continueAsGuest(onResult: () -> Unit = {}) {
@@ -76,8 +89,10 @@ class AuthViewModel(
 
     fun logout() {
         userListener?.remove()
+        subscribedRole = null
+        cloudRepository.unsubscribeFromRoleTopics()
         cloudRepository.logout()
-        localRepository.clearUser()
+        viewModelScope.launch { localRepository.clearUser() }
         _state.update { it.copy(user = ANONYMOUS_USER) }
     }
 

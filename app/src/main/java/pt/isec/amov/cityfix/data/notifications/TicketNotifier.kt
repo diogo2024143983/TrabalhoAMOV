@@ -11,6 +11,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import pt.isec.amov.cityfix.MainActivity
 import pt.isec.amov.cityfix.data.cloud.CityFixMessagingService
+import pt.isec.amov.cityfix.data.local.CityFixLocalRepository
 import pt.isec.amov.cityfix.model.Incident
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.model.UserRole
@@ -21,8 +22,10 @@ import pt.isec.amov.cityfix.model.BusinessRules
  * (guardado localmente) e o snapshot atual do Firestore. É usado tanto pelo listener em tempo real
  * (app aberta) como pelo TicketLifecycleWorker (app em segundo plano), dispensando Cloud Functions.
  */
-class TicketNotifier(private val context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+class TicketNotifier(
+    private val context: Context,
+    private val localRepository: CityFixLocalRepository
+) {
 
     fun notifyChanges(previous: List<Incident>, current: List<Incident>, myUid: String?, myRole: UserRole) {
         if (myUid.isNullOrBlank() || myRole == UserRole.ANONYMOUS) return
@@ -76,9 +79,9 @@ class TicketNotifier(private val context: Context) {
     }
 
     /** Alerta o munícipe quando faltam 24 horas para o fecho definitivo de um ticket resolvido. */
-    fun notifyClosingSoon(current: List<Incident>, myUid: String?, now: Long = System.currentTimeMillis()) {
+    suspend fun notifyClosingSoon(current: List<Incident>, myUid: String?, now: Long = System.currentTimeMillis()) {
         if (myUid.isNullOrBlank()) return
-        val alreadyNotified = prefs.getStringSet(KEY_CLOSING_NOTIFIED, emptySet()).orEmpty().toMutableSet()
+        val alreadyNotified = localRepository.loadClosingNotified().toMutableSet()
         var changed = false
 
         current.filter { it.status == IncidentStatus.RESOLVED && (it.authorId == myUid || myUid in it.supporterIds) }
@@ -96,7 +99,7 @@ class TicketNotifier(private val context: Context) {
                     changed = true
                 }
             }
-        if (changed) prefs.edit().putStringSet(KEY_CLOSING_NOTIFIED, alreadyNotified).apply()
+        if (changed) localRepository.saveClosingNotified(alreadyNotified)
     }
 
     private fun isRelevant(ticket: Incident, myUid: String, myRole: UserRole): Boolean =
@@ -151,8 +154,6 @@ class TicketNotifier(private val context: Context) {
 
     companion object {
         const val EXTRA_TICKET_ID = "ticketId"
-        private const val PREFS = "cityfix_notifications"
-        private const val KEY_CLOSING_NOTIFIED = "closing_notified"
         private const val DAY_MS = 24L * 60 * 60 * 1000
         private const val SUMMARY_ID = 9
     }

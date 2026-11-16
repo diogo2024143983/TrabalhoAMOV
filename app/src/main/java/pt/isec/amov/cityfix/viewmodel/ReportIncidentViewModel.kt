@@ -71,6 +71,22 @@ class ReportIncidentViewModel(
 
     fun onPublicChanged(isPublic: Boolean) = _formState.update { it.copy(isPublic = isPublic) }
 
+    /** Pré-preenchimento após um impacto detetado pelo acelerómetro (I.2.F): Vias Públicas / Dano. */
+    fun prefillFromImpact(categories: List<IncidentCategory>, magnitude: Float?) = _formState.update { form ->
+        if (form.title.isNotBlank()) return@update form
+        val roads = categories.firstOrNull { it.id == "vias" } ?: categories.firstOrNull { it.name.contains("Vias", ignoreCase = true) }
+        val detail = magnitude?.let { " (intensidade %.1f m/s²)".format(it) }.orEmpty()
+        form.copy(
+            title = "Possível buraco ou desnível na via",
+            description = "Impacto detetado automaticamente pelo acelerómetro$detail. Confirme e acrescente detalhes.",
+            category = roads ?: form.category,
+            situation = IncidentSituation.DAMAGE,
+            titleError = null,
+            descriptionError = null,
+            categoryError = null
+        )
+    }
+
     fun onAddressChanged(value: String) = _formState.update {
         it.copy(locationAddress = value, addressError = if (value.isBlank()) "A localização é obrigatória" else null)
     }

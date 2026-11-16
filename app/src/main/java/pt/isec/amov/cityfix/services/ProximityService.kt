@@ -19,6 +19,11 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import pt.isec.amov.cityfix.data.CityFixApp
 import pt.isec.amov.cityfix.model.BusinessRules
 import pt.isec.amov.cityfix.model.Incident
@@ -36,6 +41,8 @@ class ProximityService : Service() {
     private val notifiedTickets = mutableSetOf<String>()
     private var activeIncidents: List<Incident> = emptyList()
     private var ticketsListener: ListenerRegistration? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var operatorName = "Operador municipal"
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -47,6 +54,12 @@ class ProximityService : Service() {
         super.onCreate()
         createNotificationChannel()
         promoteToForeground()
+        // O utilizador vem do DataStore (leitura suspensa) e fica em cache enquanto o serviço corre
+        serviceScope.launch {
+            app.localRepository.user.collect { user ->
+                operatorName = user?.name.orEmpty().ifBlank { "Operador municipal" }
+            }
+        }
         ticketsListener = app.cloudRepository.observeTickets(onChanged = { tickets ->
             activeIncidents = tickets.filter { it.isActive }
         })
@@ -77,7 +90,6 @@ class ProximityService : Service() {
     }
 
     private fun checkProximity(userLoc: Location) {
-        val operatorName = app.localRepository.loadUser()?.name.orEmpty().ifBlank { "Operador municipal" }
         val results = FloatArray(1)
         activeIncidents.forEach { ticket ->
             if (ticket.latitude == 0.0 && ticket.longitude == 0.0) return@forEach
@@ -106,6 +118,7 @@ class ProximityService : Service() {
         super.onDestroy()
         locationClient.removeLocationUpdates(locationCallback)
         ticketsListener?.remove()
+        serviceScope.cancel()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

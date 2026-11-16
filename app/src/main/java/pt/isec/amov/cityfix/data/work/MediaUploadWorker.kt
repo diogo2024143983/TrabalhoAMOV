@@ -7,8 +7,10 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.work.workDataOf
 import pt.isec.amov.cityfix.data.CityFixApp
 import pt.isec.amov.cityfix.model.MediaAttachment
@@ -21,9 +23,13 @@ import java.util.concurrent.TimeUnit
  * e, no fim, associa-a ao documento do ticket no Firestore.
  * Só corre com ligação à rede; em caso de falha volta a tentar com backoff exponencial.
  */
-class MediaUploadWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
+class MediaUploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        upload()
+    }
+
+    private fun upload(): Result {
         val ticketId = inputData.getString(KEY_TICKET_ID) ?: return Result.failure()
         val kind = inputData.getString(KEY_KIND) ?: KIND_MEDIA
         val mediaFile = inputData.getString(KEY_MEDIA_PATH)?.let(::File)

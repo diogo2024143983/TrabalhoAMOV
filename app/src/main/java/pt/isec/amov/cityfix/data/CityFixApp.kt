@@ -18,7 +18,7 @@ class CityFixApp : Application() {
     val cloudRepository by lazy { CityFixFirebaseRepository(this) }
     val localRepository by lazy { CityFixLocalRepository(this) }
     val mediaRepository by lazy { MediaRepository(this) }
-    val ticketNotifier by lazy { TicketNotifier(this) }
+    val ticketNotifier by lazy { TicketNotifier(this, localRepository) }
 
     override fun onCreate() {
         super.onCreate()

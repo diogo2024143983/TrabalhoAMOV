@@ -33,7 +33,9 @@ data class AuthFormUiState(
     val emailError: String? = null,
     val passwordError: String? = null,
     val isLoading: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    /** false quando [message] é informativa (ex.: email de recuperação enviado). */
+    val messageIsError: Boolean = true
 ) {
     val isValid: Boolean
         get() {
@@ -98,7 +100,7 @@ class AuthFormViewModel(
     fun login(onSuccess: (String) -> Unit) {
         val form = _formState.value
         if (!form.isValid) return
-        _formState.update { it.copy(isLoading = true, message = null) }
+        _formState.update { it.copy(isLoading = true, message = null, messageIsError = true) }
         cloudRepository.login(
             email = form.email.trim(),
             pass = form.password,
@@ -108,6 +110,25 @@ class AuthFormViewModel(
             },
             onError = { e ->
                 _formState.update { it.copy(isLoading = false, message = e.localizedMessage ?: "Email ou palavra-passe incorretos.") }
+            }
+        )
+    }
+
+    /** Recuperação de credenciais: o Firebase envia um email com a ligação para redefinir a palavra-passe. */
+    fun resetPassword() {
+        val email = _formState.value.email.trim()
+        if (!CityFixUtils.isValidEmail(email)) {
+            _formState.update { it.copy(emailError = "Indique o email da conta para recuperar a palavra-passe") }
+            return
+        }
+        _formState.update { it.copy(isLoading = true, message = null) }
+        cloudRepository.sendPasswordReset(
+            email = email,
+            onSuccess = {
+                _formState.update { it.copy(isLoading = false, messageIsError = false, message = "Enviámos um email para $email com instruções para redefinir a palavra-passe.") }
+            },
+            onError = { e ->
+                _formState.update { it.copy(isLoading = false, messageIsError = true, message = e.localizedMessage ?: "Não foi possível enviar o email de recuperação.") }
             }
         )
     }

@@ -65,7 +65,8 @@ fun AuthScreen(
     onPasswordChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onGuest: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onForgotPassword: () -> Unit = {}
 ) {
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) onPhotoChange(uri)
@@ -162,7 +163,13 @@ fun AuthScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        state.message?.let { Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold) }
+        state.message?.let {
+            Text(
+                it,
+                color = if (state.messageIsError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
 
         if (state.isLoading) {
             CircularProgressIndicator()
@@ -175,6 +182,9 @@ fun AuthScreen(
             Text(if (state.isRegisterMode) "Já tens conta? Inicia sessão" else "Não tens conta? Criar nova conta")
         }
         if (!state.isRegisterMode) {
+            TextButton(onClick = onForgotPassword, enabled = !state.isLoading, modifier = Modifier.fillMaxWidth()) {
+                Text("Esqueci-me da palavra-passe")
+            }
             OutlinedButton(onClick = onGuest, modifier = Modifier.fillMaxWidth()) { Text("Continuar como Cidadão Anónimo") }
         }
         Spacer(Modifier.height(24.dp))

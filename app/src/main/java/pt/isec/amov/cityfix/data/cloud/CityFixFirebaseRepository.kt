@@ -77,6 +77,8 @@ class CityFixFirebaseRepository(context: Context) {
         }
         firebaseAuth.createUserWithEmailAndPassword(email, pass)
             .addOnSuccessListener { result ->
+                // Boa prática da P11: confirmar o email do novo utilizador
+                result.user?.sendEmailVerification()
                 val uid = result.user?.uid ?: UUID.randomUUID().toString()
                 val newUser = user.copy(id = uid, email = email)
                 saveUser(newUser, onSuccess = { onSuccess(uid) }, onError = onError)
@@ -108,6 +110,17 @@ class CityFixFirebaseRepository(context: Context) {
 
     fun logout() {
         auth?.signOut()
+    }
+
+    /** Recuperação de credenciais por email (enunciado I.2.B / I.3.B; P11). */
+    fun sendPasswordReset(email: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+        val firebaseAuth = auth ?: run {
+            onError(IllegalStateException("Firebase Auth não está disponível."))
+            return
+        }
+        firebaseAuth.sendPasswordResetEmail(email)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener(onError)
     }
 
     fun saveUser(
@@ -537,7 +550,15 @@ class CityFixFirebaseRepository(context: Context) {
     fun uploadFileBlocking(file: File, storagePath: String): String {
         val storageInstance = storage ?: throw IllegalStateException("Firebase Storage não está configurado.")
         val ref = storageInstance.reference.child(storagePath)
-        Tasks.await(ref.putFile(Uri.fromFile(file)))
+        // Tipo MIME explícito: as regras do Storage só aceitam image/* e video/*
+        val contentType = when (file.extension.lowercase()) {
+            "mp4", "3gp", "webm", "mkv" -> "video/${if (file.extension.lowercase() == "3gp") "3gpp" else file.extension.lowercase()}"
+            "png" -> "image/png"
+            "webp" -> "image/webp"
+            else -> "image/jpeg"
+        }
+        val metadata = com.google.firebase.storage.StorageMetadata.Builder().setContentType(contentType).build()
+        Tasks.await(ref.putFile(Uri.fromFile(file), metadata))
         return Tasks.await(ref.downloadUrl).toString()
     }
 
@@ -591,6 +612,33 @@ class CityFixFirebaseRepository(context: Context) {
         FirebaseMessaging.getInstance().token
             .addOnSuccessListener(::saveMessagingToken)
             .addOnFailureListener(onError)
+    }
+
+    /**
+     * Tópicos FCM (P11): todos os utilizadores autenticados recebem "cityfix" e cada perfil o seu tópico,
+     * permitindo avisos dirigidos a operadores ou munícipes (ex.: enviados pela consola do Firebase).
+     */
+    fun subscribeToRoleTopic(role: UserRole) {
+        if (app == null || role == UserRole.ANONYMOUS) return
+        val messaging = FirebaseMessaging.getInstance()
+        val (subscribe, unsubscribe) = if (role == UserRole.OPERATOR) TOPIC_OPERATORS to TOPIC_CITIZENS else TOPIC_CITIZENS to TOPIC_OPERATORS
+        listOf(TOPIC_ALL, subscribe).forEach { topic ->
+            messaging.subscribeToTopic(topic)
+                .addOnSuccessListener { android.util.Log.i("CityFixFCM", "Subscrito no tópico '$topic'") }
+                .addOnFailureListener { android.util.Log.e("CityFixFCM", "Falha ao subscrever '$topic'", it) }
+        }
+        messaging.unsubscribeFromTopic(unsubscribe)
+        // Token do dispositivo (para "Enviar mensagem de teste" na consola) e guardado no perfil
+        messaging.token.addOnSuccessListener { token ->
+            android.util.Log.i("CityFixFCM", "Token FCM: $token")
+            saveMessagingToken(token)
+        }
+    }
+
+    fun unsubscribeFromRoleTopics() {
+        if (app == null) return
+        val messaging = FirebaseMessaging.getInstance()
+        listOf(TOPIC_ALL, TOPIC_OPERATORS, TOPIC_CITIZENS).forEach { messaging.unsubscribeFromTopic(it) }
     }
 
     // =========================================================================
@@ -790,6 +838,9 @@ class CityFixFirebaseRepository(context: Context) {
         const val USERS_COLLECTION = "users"
         const val TICKETS_COLLECTION = "tickets"
         val SYSTEM_ACTOR = CityFixUser(id = "system", name = "Sistema", role = UserRole.OPERATOR)
+        const val TOPIC_ALL = "cityfix"
+        const val TOPIC_OPERATORS = "operadores"
+        const val TOPIC_CITIZENS = "municipes"
         const val CATEGORIES_COLLECTION = "categories"
         const val MESSAGES_COLLECTION = "messages"
     }

@@ -14,7 +14,8 @@ Aplicação Android para comunicação e acompanhamento de ocorrências no espa�
 - Firebase Cloud Messaging
 - WorkManager (envio de multimédia e tarefas periódicas em segundo plano)
 - Coil 3 (carregamento de imagens)
-- Persistência local com `SharedPreferences` e Kotlin Serialization
+- Persistência local com Jetpack DataStore (Preferences), com migração automática dos antigos `SharedPreferences`, e Kotlin Serialization
+- Sensores Android (acelerómetro) e osmdroid (mapas OpenStreetMap)
 - Google Play Services Location
 
 ## Funcionalidades implementadas
@@ -23,6 +24,8 @@ Aplicação Android para comunicação e acompanhamento de ocorrências no espa�
 - Registo de munícipe (pendente até validação do NIF por um operador) e de operador (email do domínio municipal, ativo de imediato)
 - Validação de NIF (algoritmo e unicidade), telefone e email
 - Autenticação por email/palavra-passe e acesso anónimo
+- Recuperação da palavra-passe por email ("Esqueci-me da palavra-passe") e email de verificação enviado após o registo
+- Subscrição de tópicos FCM por perfil (`cityfix`, `operadores`, `municipes`), anulada no logout
 - Edição de perfil com fotografia comprimida localmente
 - Validação de munícipes e gestão de categorias pelo operador
 
@@ -32,6 +35,7 @@ Aplicação Android para comunicação e acompanhamento de ocorrências no espa�
 - Ocorrências de grupo: uma ocorrência igual a menos de 10 m adiciona o utilizador como apoiante
 - Lista com miniaturas e detalhe com pré-visualização de imagem/vídeo
 - Mensagens em tempo real entre munícipe e serviços camarários
+- Deteção automática de impactos (opção do perfil do munícipe): o `ImpactDetector` filtra a gravidade do acelerómetro e calcula a aceleração vertical; acima de 8 m/s² propõe reportar a ocorrência com o formulário pré-preenchido (Vias Públicas / Dano) e a localização GPS. O sensor só está registado com a app visível (`DisposableEffect` + `LifecycleEventObserver`, padrão da aula de sensores)
 
 ### Multimédia
 - Compressão local das imagens (correção de orientação EXIF, máx. 1280 px, JPEG) e geração de miniaturas (256 px)
@@ -63,7 +67,10 @@ Aplicação Android para comunicação e acompanhamento de ocorrências no espa�
 - **Ecrãs sem estado**: recebem dados e emitem eventos por lambdas; `@Preview` nos principais.
 - **Ocorrências**: até 3 anexos (`PickMultipleVisualMedia` ou câmara com `TakePicture` e `FileProvider`), galeria `LazyVerticalStaggeredGrid`, categorias em `ExposedDropdownMenuBox`, local escolhido no mapa ou por GPS.
 - **Layout adaptativo**: em landscape, o detalhe e a nova ocorrência dividem o ecrã 50/50 com o mapa.
-- **Geofence de 20 m**: `ProximityService` em primeiro plano (padrão de P10), com `requestLocationUpdates` e `Location.distanceBetween`; os autores são notificados quando um operador está junto da ocorrência.
+- **Geofence de 20 m**: `ProximityService` em primeiro plano (padrão de P10), com `requestLocationUpdates` e `Location.distanceBetween`; os autores são notificados quando um operador está junto da ocorrência. A localização em segundo plano é pedida de forma faseada, depois de um diálogo que explica a necessidade.
+- **Persistência local**: instância única de DataStore, leituras como `Flow` com tratamento de `IOException` e escritas `suspend` (aula de Storage).
+- **Trabalho em segundo plano**: `CoroutineWorker` para o envio de multimédia e para o ciclo de vida dos tickets.
+- **Regras de segurança**: `firestore.rules` e `storage.rules` (cada utilizador só escreve em `users/{uid}/`; anexos de tickets limitados a imagem/vídeo e a 20 MB), seguindo a P11.
 
 ## Estado atual
 
@@ -105,9 +112,8 @@ firebase deploy --only firestore:rules,storage
 
 - Ativar o Firebase Storage e validar o envio de multimédia de ponta a ponta.
 - Notificações push remotas (exigem Cloud Functions ou servidor); atualmente são locais.
-- Deteção de impactos com o acelerómetro.
 - Restrição do munícipe anónimo a 10 km da Praça da República.
-- Autenticação com duplo fator (MFA) e recuperação de palavra-passe por email.
+- Autenticação com duplo fator (MFA).
 - Internacionalização: inglês por omissão e português como língua adicional (os textos ainda estão no código).
 - Revisão de acessibilidade.
 - Testes unitários e de UI.

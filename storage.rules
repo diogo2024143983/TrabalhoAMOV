@@ -1,9 +1,30 @@
 rules_version = '2';
+// Regras do Cloud Storage (padrão da P11): cada utilizador só escreve na sua pasta;
+// a multimédia dos tickets exige sessão iniciada e tem limites de tamanho e tipo.
 service firebase.storage {
   match /b/{bucket}/o {
+    // Fotografias de perfil: users/{uid}/profile_*.jpg
+    match /users/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Anexos, miniaturas e provas de resolução: tickets/{ticketId}/...
+    match /tickets/{ticketId}/{fileName} {
+      allow read: if true; // ocorrências públicas podem ser vistas por anónimos
+      allow create: if request.auth != null
+                    && request.resource.size < 20 * 1024 * 1024
+                    && (request.resource.contentType.matches('image/.*')
+                        || request.resource.contentType.matches('video/.*'));
+      allow update, delete: if false;
+    }
+
+    // Tudo o resto fica bloqueado
     match /{allPaths=**} {
-      allow read: if true; // qualquer um pode ver as fotos dos tickets
-      allow write: if request.auth != null; // so quem tem login pode carregar ficheiros
+      allow read, write: if false;
     }
   }
 }

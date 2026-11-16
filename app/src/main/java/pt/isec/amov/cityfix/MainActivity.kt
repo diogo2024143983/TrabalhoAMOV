@@ -35,8 +35,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -76,6 +80,7 @@ import pt.isec.amov.cityfix.ui.screens.OperatorScreen
 import pt.isec.amov.cityfix.ui.screens.ProfileScreen
 import pt.isec.amov.cityfix.ui.screens.ReportIncidentScreen
 import pt.isec.amov.cityfix.ui.theme.CityFixTheme
+import pt.isec.amov.cityfix.utils.ImpactDetectionEffect
 import pt.isec.amov.cityfix.utils.LocationTracker
 import pt.isec.amov.cityfix.viewmodel.AuthFormViewModel
 import pt.isec.amov.cityfix.viewmodel.AuthFormViewModelFactory
@@ -135,6 +140,11 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
     }
     // Localização em segundo plano: necessária para a geofence do operador com a app fechada
     val backgroundLocationRequest = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    // Pedido faseado (aula de permissões): explicar primeiro porque é precisa a localização "sempre"
+    var showBackgroundRationale by remember { mutableStateOf(false) }
+    // Deteção de impactos: magnitude do último impacto por confirmar (null = sem diálogo)
+    var pendingImpact by remember { mutableStateOf<Float?>(null) }
+    var impactMagnitudeForReport by remember { mutableStateOf<Float?>(null) }
 
     LaunchedEffect(Unit) {
         val permissions = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -151,7 +161,7 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
         if (user.role == UserRole.OPERATOR && LocationTracker.hasPermission(context)) {
             ProximityService.start(context)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasBackgroundLocation(context)) {
-                backgroundLocationRequest.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                showBackgroundRationale = true
             }
         } else {
             ProximityService.stop(context)
@@ -170,6 +180,46 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
     val canReport = user.role == UserRole.OPERATOR || (user.role == UserRole.CITIZEN && user.active)
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
+
+    // I.2.F: acelerómetro ativo só para munícipes validados que ativaram a opção no perfil
+    ImpactDetectionEffect(
+        enabled = user.role == UserRole.CITIZEN && user.active && user.impactDetectionEnabled
+    ) { magnitude ->
+        if (destination?.hasRoute<ReportIncidentRoute>() != true && pendingImpact == null) pendingImpact = magnitude
+    }
+
+    pendingImpact?.let { magnitude ->
+        AlertDialog(
+            onDismissRequest = { pendingImpact = null },
+            title = { Text("Impacto detetado") },
+            text = { Text("O telemóvel registou um impacto forte (%.1f m/s²). Pode ter passado por um buraco. Pretende reportar a ocorrência?".format(magnitude)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    impactMagnitudeForReport = magnitude
+                    pendingImpact = null
+                    navController.navigate(ReportIncidentRoute(fromImpact = true)) { launchSingleTop = true }
+                }) { Text("Reportar") }
+            },
+            dismissButton = { TextButton(onClick = { pendingImpact = null }) { Text("Ignorar") } }
+        )
+    }
+
+    if (showBackgroundRationale) {
+        AlertDialog(
+            onDismissRequest = { showBackgroundRationale = false },
+            title = { Text("Localização em segundo plano") },
+            text = { Text("Para avisar os munícipes quando está a menos de 20 m de uma ocorrência, mesmo com a app fechada, o CityFix precisa de acesso à localização \"Permitir sempre\". No ecrã seguinte escolha essa opção.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBackgroundRationale = false
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        backgroundLocationRequest.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    }
+                }) { Text("Continuar") }
+            },
+            dismissButton = { TextButton(onClick = { showBackgroundRationale = false }) { Text("Agora não") } }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -191,7 +241,7 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
         floatingActionButton = {
             // Botão flutuante contextual: só nos ecrãs de listagem e para quem pode registar ocorrências
             if (canReport && (destination?.hasRoute<DashboardRoute>() == true || destination?.hasRoute<IncidentListRoute>() == true)) {
-                FloatingActionButton(onClick = { navController.navigate(ReportIncidentRoute) }) {
+                FloatingActionButton(onClick = { navController.navigate(ReportIncidentRoute()) }) {
                     Icon(Icons.Default.Add, contentDescription = "Registar nova ocorrência")
                 }
             }
@@ -232,6 +282,16 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
                 // ViewModel com âmbito no ecrã (destruído ao sair do formulário)
                 val reportVm: ReportIncidentViewModel = viewModel(viewModelStoreOwner = backStack, factory = ReportIncidentViewModelFactory(app))
                 val formState by reportVm.formState.collectAsStateWithLifecycle()
+                val route = backStack.toRoute<ReportIncidentRoute>()
+                LaunchedEffect(route.fromImpact) {
+                    if (route.fromImpact) {
+                        reportVm.prefillFromImpact(incidentState.activeCategories, impactMagnitudeForReport)
+                        // Localização do impacto = posição atual do municípe
+                        LocationTracker.currentLocation(context)?.let {
+                            reportVm.onLocationSelected(it.latitude, it.longitude, "Localização do impacto obtida por GPS.")
+                        }
+                    }
+                }
                 ReportIncidentScreen(
                     state = formState,
                     categories = incidentState.activeCategories,
@@ -318,7 +378,8 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
                     onEmailChange = formVm::onEmailChanged,
                     onPasswordChange = formVm::onPasswordChanged,
                     onSubmit = { if (formState.isRegisterMode) formVm.register(onSignedIn) else formVm.login(onSignedIn) },
-                    onGuest = { authVm.continueAsGuest { navController.popBackStack() } }
+                    onGuest = { authVm.continueAsGuest { navController.popBackStack() } },
+                    onForgotPassword = formVm::resetPassword
                 )
             }
         }

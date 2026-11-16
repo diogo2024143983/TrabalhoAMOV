@@ -63,6 +63,9 @@ dependencies {
     // Serialization & JSON local caching
     implementation(libs.kotlinx.serialization.json)
 
+    // Persistência chave-valor (Jetpack DataStore, 09_Storage)
+    implementation(libs.androidx.datastore.preferences)
+
     // Location & Geofencing
     implementation(libs.play.services.location)
 

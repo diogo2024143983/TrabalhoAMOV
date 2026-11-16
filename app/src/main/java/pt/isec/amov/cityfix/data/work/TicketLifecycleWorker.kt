@@ -8,8 +8,10 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import pt.isec.amov.cityfix.data.CityFixApp
 import pt.isec.amov.cityfix.model.BusinessRules
 import pt.isec.amov.cityfix.model.IncidentStatus
@@ -22,9 +24,13 @@ import java.util.concurrent.TimeUnit
  *  2. gera notificações locais de mudanças de estado / novas mensagens ocorridas com a app fechada;
  *  3. avisa o munícipe quando faltam 24 horas para o fecho definitivo.
  */
-class TicketLifecycleWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
+class TicketLifecycleWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        runCycle()
+    }
+
+    private suspend fun runCycle(): Result {
         val app = applicationContext as CityFixApp
         val cloud = app.cloudRepository
         if (!cloud.isAvailable) return Result.success()
@@ -47,7 +53,7 @@ class TicketLifecycleWorker(context: Context, params: WorkerParameters) : Worker
             tickets = cloud.fetchTicketsBlocking()
         }
 
-        notifier.notifyChanges(local.loadIncidents(emptyList()), tickets, uid, role)
+        notifier.notifyChanges(local.loadIncidents(), tickets, uid, role)
         notifier.notifyClosingSoon(tickets, uid, now)
         local.saveIncidents(tickets)
         return Result.success()

@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import pt.isec.amov.cityfix.data.MediaRepository
 import pt.isec.amov.cityfix.data.cloud.CityFixFirebaseRepository
 import pt.isec.amov.cityfix.data.local.CityFixLocalRepository
@@ -63,10 +65,18 @@ class IncidentViewModel(
     /** Tickets cujo fecho automático já foi tentado nesta sessão (evita repetir a transação). */
     private val closeAttempted = mutableSetOf<String>()
 
-    private val _state = MutableStateFlow(IncidentUiState(incidents = IncidentList(localRepository.loadIncidents(emptyList()))))
+    /** Serializa a comparação snapshot anterior/atual (evita notificações duplicadas entre snapshots seguidos). */
+    private val snapshotMutex = Mutex()
+
+    private val _state = MutableStateFlow(IncidentUiState())
     val state: StateFlow<IncidentUiState> = _state.asStateFlow()
 
     init {
+        // Mostra de imediato a última cópia local (DataStore) enquanto o Firestore responde
+        viewModelScope.launch {
+            val cached = localRepository.loadIncidents()
+            _state.update { if (it.incidents.totalCount == 0) it.copy(incidents = IncidentList(cached)) else it }
+        }
         listenToTickets()
         listenToCategories()
     }
@@ -82,13 +92,17 @@ class IncidentViewModel(
         ticketsListener = cloudRepository.observeTickets(
             onChanged = { tickets ->
                 _state.update { it.copy(incidents = IncidentList(tickets), message = null) }
-
-                val uid = cloudRepository.currentUserId
-                val role = localRepository.loadUser()?.role ?: UserRole.ANONYMOUS
-                notifier.notifyChanges(localRepository.loadIncidents(emptyList()), tickets, uid, role)
-                notifier.notifyClosingSoon(tickets, uid)
-                localRepository.saveIncidents(tickets)
                 closeExpiredTickets()
+
+                viewModelScope.launch {
+                    snapshotMutex.withLock {
+                        val uid = cloudRepository.currentUserId
+                        val role = localRepository.loadUser()?.role ?: UserRole.ANONYMOUS
+                        notifier.notifyChanges(localRepository.loadIncidents(), tickets, uid, role)
+                        notifier.notifyClosingSoon(tickets, uid)
+                        localRepository.saveIncidents(tickets)
+                    }
+                }
             },
             onError = { e -> _state.update { it.copy(message = e.localizedMessage) } }
         )
