@@ -1,47 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
-    }
-
-    function isOperator() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'OPERATOR';
-    }
-
-    // Perfis: o próprio gere o seu perfil; operadores leem e ativam munícipes.
-    // A leitura por qualquer autenticado é necessária para validar a unicidade do NIF.
-    match /users/{userId} {
-      allow read: if signedIn();
-      allow create: if signedIn() && request.auth.uid == userId;
-      allow update: if signedIn() && (request.auth.uid == userId || isOperator());
-      allow delete: if signedIn() && request.auth.uid == userId;
-    }
-
-    // Tipologias de problemas: geridas apenas pelos operadores.
-    match /categories/{categoryId} {
+    match /{document=**} {
       allow read: if true;
-      allow write: if isOperator();
-    }
-
-    // Tickets: um ticket encerrado fica bloqueado e não admite alterações.
-    match /tickets/{ticketId} {
-      allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update: if signedIn() && resource.data.status != 'CLOSED';
-      allow delete: if isOperator();
-
-      match /messages/{messageId} {
-        allow read: if signedIn();
-        allow create: if signedIn()
-          && request.resource.data.authorId == request.auth.uid
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
-          && get(/databases/$(database)/documents/tickets/$(ticketId)).data.status != 'CLOSED';
-        allow update, delete: if false;
-      }
+      allow write: if request.auth != null;
     }
   }
 }
