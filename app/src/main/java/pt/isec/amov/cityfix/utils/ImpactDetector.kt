@@ -25,7 +25,7 @@ import kotlin.math.sqrt
  */
 class ImpactDetector(
     private val onImpact: (magnitude: Float) -> Unit,
-    private val thresholdMs2: Float = 8f,
+    private val thresholdMs2: Float = 12f,
     private val cooldownMs: Long = 20_000L,
     private val clock: () -> Long = System::currentTimeMillis
 ) : SensorEventListener {
@@ -56,10 +56,12 @@ class ImpactDetector(
             (values[2] - gravity[2]) * gravity[2]) / gNorm
 
         val now = clock()
-        if (kotlin.math.abs(vertical) >= thresholdMs2 && now - lastImpactAt >= cooldownMs) {
+        val isHorizontal = kotlin.math.abs(gravity[2]) > 7.5f
+        if (isHorizontal && kotlin.math.abs(vertical) >= thresholdMs2 && now - lastImpactAt >= cooldownMs) {
             lastImpactAt = now
             onImpact(kotlin.math.abs(vertical))
         }
+
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
@@ -88,11 +90,15 @@ fun ImpactDetectionEffect(enabled: Boolean, onImpact: (Float) -> Unit) {
         val detector = ImpactDetector(onImpact = { currentOnImpact(it) })
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
+
                 Lifecycle.Event.ON_START ->
                     sensorManager.registerListener(detector, accelerometer, SensorManager.SENSOR_DELAY_UI)
                 Lifecycle.Event.ON_STOP -> sensorManager.unregisterListener(detector)
                 else -> Unit
             }
+        }
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            sensorManager.registerListener(detector, accelerometer, SensorManager.SENSOR_DELAY_UI)
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
