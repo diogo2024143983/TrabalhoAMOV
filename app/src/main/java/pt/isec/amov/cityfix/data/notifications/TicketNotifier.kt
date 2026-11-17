@@ -83,8 +83,8 @@ class TicketNotifier(
         show(
             ticketId = "mfa",
             kind = 6,
-            title = "Código de Verificação (MFA)",
-            text = "O seu código de autenticação de 2.º fator CityFix é: $code"
+            title = "Código de Segurança CityFix",
+            text = "O teu código de confirmação é $code. Introduz este código na aplicação para entrar."
         )
     }
 

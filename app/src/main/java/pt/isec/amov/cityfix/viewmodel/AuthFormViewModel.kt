@@ -124,7 +124,7 @@ class AuthFormViewModel(
                         mfaCode = "",
                         mfaError = null,
                         messageIsError = false,
-                        message = "Código de 2.º fator (MFA) enviado por notificação ($code)."
+                        message = "Notificação enviada com o codigo"
                     )
                 }
             },

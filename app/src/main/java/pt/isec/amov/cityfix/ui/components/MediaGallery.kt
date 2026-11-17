@@ -1,7 +1,8 @@
 package pt.isec.amov.cityfix.ui.components
 
-import android.content.Intent
 import android.net.Uri
+import android.widget.MediaController
+import android.widget.VideoView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,19 +28,25 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import pt.isec.amov.cityfix.model.MediaAttachment
 
 /**
  * Galeria de evidências da ocorrência (FixIt Project Bridge, P09) com LazyVerticalStaggeredGrid.
- * Os vídeos mostram a miniatura com um ícone de reprodução e abrem no leitor do sistema.
+ * Tocar numa foto ou vídeo abre o visualizador/leitor integrado em ecrã inteiro.
  */
 @Composable
 fun IncidentPhotoGallery(
@@ -47,7 +54,54 @@ fun IncidentPhotoGallery(
     pendingCount: Int,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    var selectedMedia by remember { mutableStateOf<MediaAttachment?>(null) }
+
+    // Visualizador de Foto / Leitor de Vídeo integrado (evita FileUriExposedException)
+    selectedMedia?.let { item ->
+        Dialog(
+            onDismissRequest = { selectedMedia = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.92f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (item.isVideo) {
+                    AndroidView(
+                        factory = { ctx ->
+                            VideoView(ctx).apply {
+                                val controller = MediaController(ctx)
+                                controller.setAnchorView(this)
+                                setMediaController(controller)
+                                setVideoURI(Uri.parse(item.url))
+                                setOnPreparedListener { mp -> mp.start() }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(16.dp)
+                    )
+                } else {
+                    AsyncImage(
+                        model = item.url,
+                        contentDescription = "Fotografia em ecrã inteiro",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize().padding(16.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = { selectedMedia = null },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Fechar", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+            }
+        }
+    }
+
     if (media.isEmpty() && pendingCount > 0) {
         PendingMediaCard(modifier)
         return
@@ -64,11 +118,7 @@ fun IncidentPhotoGallery(
                     .clip(RoundedCornerShape(8.dp))
                     .aspectRatio(1f)
                     .background(Color.Black)
-                    .clickable {
-                        val intent = Intent(Intent.ACTION_VIEW)
-                            .setDataAndType(Uri.parse(item.url), if (item.isVideo) "video/*" else "image/*")
-                        context.startActivity(intent)
-                    },
+                    .clickable { selectedMedia = item },
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(

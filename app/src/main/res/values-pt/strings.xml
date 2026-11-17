@@ -2,17 +2,17 @@
     <string name="app_name">CityFix</string>
 
     <!-- Navigation / Screen Titles -->
-    <string name="nav_dashboard">Painel Principal</string>
-    <string name="nav_public_incidents">Ocorrências Públicas</string>
-    <string name="nav_my_tickets">Os Meus Pedidos</string>
-    <string name="nav_new_incident">Reportar Ocorrência</string>
-    <string name="nav_operator_panel">Gestão Operacional</string>
+    <string name="nav_dashboard">Início</string>
+    <string name="nav_public_incidents">Ocorrências</string>
+    <string name="nav_my_tickets">As Minhas Ocorrências</string>
+    <string name="nav_new_incident">Nova Ocorrência</string>
+    <string name="nav_operator_panel">Gestão</string>
     <string name="nav_validate_citizens">Validar Munícipes</string>
     <string name="nav_categories">Categorias</string>
     <string name="nav_profile">Perfil</string>
-    <string name="nav_login">Entrar</string>
+    <string name="nav_login">Autenticação</string>
     <string name="nav_register">Registar</string>
-    <string name="nav_incident_details">Detalhe da Ocorrência</string>
+    <string name="nav_incident_details">Detalhes da Ocorrência</string>
 
     <!-- Roles & Status -->
     <string name="role_anonymous">Munícipe Anónimo</string>

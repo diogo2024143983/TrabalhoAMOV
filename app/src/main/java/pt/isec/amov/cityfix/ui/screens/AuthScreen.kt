@@ -81,19 +81,16 @@ fun AuthScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Verificação de 2.º Fator (MFA)", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth())
+            Text("Confirmação de Segurança", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth())
             Text(
-                "Introduza o código de 6 dígitos enviado para o seu dispositivo para concluir a autenticação.",
+                "Enviámos um código de 6 dígitos por notificação para o teu telemóvel. Introduz o código abaixo para concluir o login.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth()
             )
-            state.message?.let {
-                Text(it, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
-            }
             ValidatedField(
                 value = state.mfaCode,
                 onValueChange = onMfaCodeChange,
-                label = "Código MFA (6 dígitos) *",
+                label = "Código de 6 dígitos",
                 error = state.mfaError,
                 keyboardType = KeyboardType.Number
             )
@@ -102,10 +99,10 @@ fun AuthScreen(
                 enabled = state.mfaCode.length == 6,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Confirmar Código e Entrar")
+                Text("Confirmar e Entrar")
             }
             OutlinedButton(onClick = onCancelMfa, modifier = Modifier.fillMaxWidth()) {
-                Text("Cancelar")
+                Text("Voltar")
             }
         }
         return

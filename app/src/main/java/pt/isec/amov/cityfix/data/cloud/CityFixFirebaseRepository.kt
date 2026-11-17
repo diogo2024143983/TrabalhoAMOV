@@ -699,7 +699,10 @@ class CityFixFirebaseRepository(context: Context) {
                 )
             }
         }.orEmpty()
-        if (list.isNotEmpty()) return list
+        if (list.isNotEmpty()) {
+            val remote = list.filter { it.url.startsWith("http") }
+            return remote.ifEmpty { list }
+        }
         val legacyUrl = getString("mediaUrl").orEmpty()
         return if (legacyUrl.isBlank()) emptyList() else listOf(
             MediaAttachment(legacyUrl, getString("thumbnailUrl").orEmpty(), getBoolean("isVideo") ?: false)
