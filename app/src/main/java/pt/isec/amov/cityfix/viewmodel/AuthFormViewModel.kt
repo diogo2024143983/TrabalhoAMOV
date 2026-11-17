@@ -13,6 +13,7 @@ import pt.isec.amov.cityfix.data.cloud.CityFixFirebaseRepository
 import pt.isec.amov.cityfix.model.CityFixUser
 import pt.isec.amov.cityfix.model.UserRole
 import pt.isec.amov.cityfix.utils.CityFixUtils
+import pt.isec.amov.cityfix.data.notifications.TicketNotifier
 
 /** Estado imutável do formulário de login/registo, com validação por campo (padrão UiState de P08). */
 data class AuthFormUiState(
@@ -35,7 +36,11 @@ data class AuthFormUiState(
     val isLoading: Boolean = false,
     val message: String? = null,
     /** false quando [message] é informativa (ex.: email de recuperação enviado). */
-    val messageIsError: Boolean = true
+    val messageIsError: Boolean = true,
+    val mfaStep: Boolean = false,
+    val mfaCode: String = "",
+    val mfaError: String? = null
+
 ) {
     val isValid: Boolean
         get() {
@@ -50,10 +55,13 @@ data class AuthFormUiState(
 class AuthFormViewModel(
     private val cloudRepository: CityFixFirebaseRepository,
     private val mediaRepository: MediaRepository,
-    startInRegisterMode: Boolean
+    startInRegisterMode: Boolean,
+    private val ticketNotifier: TicketNotifier? = null
 ) : ViewModel() {
     private val _formState = MutableStateFlow(AuthFormUiState(isRegisterMode = startInRegisterMode))
     val formState: StateFlow<AuthFormUiState> = _formState.asStateFlow()
+    private var expectedMfaCode: String? = null
+    private var pendingUid: String? = null
 
     fun onRegisterModeChanged(register: Boolean) =
         _formState.update { AuthFormUiState(isRegisterMode = register, email = it.email) }
@@ -105,13 +113,48 @@ class AuthFormViewModel(
             email = form.email.trim(),
             pass = form.password,
             onSuccess = { uid ->
-                _formState.update { it.copy(isLoading = false) }
-                onSuccess(uid)
+                val code = (100000..999999).random().toString()
+                expectedMfaCode = code
+                pendingUid = uid
+                ticketNotifier?.notifyMfaCode(code)
+                _formState.update {
+                    it.copy(
+                        isLoading = false,
+                        mfaStep = true,
+                        mfaCode = "",
+                        mfaError = null,
+                        messageIsError = false,
+                        message = "Código de 2.º fator (MFA) enviado por notificação ($code)."
+                    )
+                }
             },
             onError = { e ->
                 _formState.update { it.copy(isLoading = false, message = e.localizedMessage ?: "Email ou palavra-passe incorretos.") }
             }
         )
+    }
+
+    fun onMfaCodeChanged(value: String) = _formState.update {
+        it.copy(mfaCode = value.filter(Char::isDigit).take(6), mfaError = null)
+    }
+
+    fun verifyMfa(onSuccess: (String) -> Unit) {
+        val uid = pendingUid ?: return
+        if (_formState.value.mfaCode == expectedMfaCode) {
+            expectedMfaCode = null
+            pendingUid = null
+            _formState.update { it.copy(mfaStep = false, message = null) }
+            onSuccess(uid)
+        } else {
+            _formState.update { it.copy(mfaError = "Código de verificação incorreto.") }
+        }
+    }
+
+    fun cancelMfa() {
+        expectedMfaCode = null
+        pendingUid = null
+        cloudRepository.logout()
+        _formState.update { it.copy(mfaStep = false, mfaCode = "", mfaError = null, message = null) }
     }
 
     /** Recuperação de credenciais: o Firebase envia um email com a ligação para redefinir a palavra-passe. */

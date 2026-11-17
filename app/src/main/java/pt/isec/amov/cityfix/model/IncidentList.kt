@@ -21,9 +21,13 @@ class IncidentList(initialIncidents: List<Incident> = emptyList()) {
 
     fun rawList(): List<Incident> = _incidents
 
-    /** Ocorrências visíveis para o utilizador: públicas, as suas, ou todas para o operador. */
+    /** Ocorrências visíveis para o utilizador: públicas ativas (anónimo), públicas ativas + próprias (munícipe), ou todas (operador). */
     fun visibleTo(user: CityFixUser): List<Incident> = getAllSorted().filter {
-        it.isPublic || it.authorId == user.id || user.role == UserRole.OPERATOR
+        when (user.role) {
+            UserRole.ANONYMOUS -> it.isPublic && it.isActive
+            UserRole.CITIZEN -> (it.isPublic && it.isActive) || it.authorId == user.id || user.id in it.supporterIds
+            UserRole.OPERATOR -> true
+        }
     }
 
     fun active(): List<Incident> = getAllSorted().filter { it.isActive }

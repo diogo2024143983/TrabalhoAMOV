@@ -78,6 +78,16 @@ class TicketNotifier(
         )
     }
 
+    /** Notificação com o código de 2.º fator (MFA) aquando do login (enunciado I.2.B / I.3.B). */
+    fun notifyMfaCode(code: String) {
+        show(
+            ticketId = "mfa",
+            kind = 6,
+            title = "Código de Verificação (MFA)",
+            text = "O seu código de autenticação de 2.º fator CityFix é: $code"
+        )
+    }
+
     /** Alerta o munícipe quando faltam 24 horas para o fecho definitivo de um ticket resolvido. */
     suspend fun notifyClosingSoon(current: List<Incident>, myUid: String?, now: Long = System.currentTimeMillis()) {
         if (myUid.isNullOrBlank()) return

@@ -24,6 +24,7 @@ import pt.isec.amov.cityfix.model.IncidentMessage
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.model.UserRole
 import java.util.UUID
+import java.io.File
 
 data class IncidentUiState(
     val incidents: IncidentList = IncidentList(),
@@ -242,13 +243,17 @@ class IncidentViewModel(
                 onComplete(false, "Não foi possível processar a prova de resolução.")
                 return@launch
             }
+            val localProofUrl = Uri.fromFile(File(prepared.mediaPath)).toString()
+            val localThumbUrl = prepared.thumbnailPath?.let { Uri.fromFile(File(it)).toString() }.orEmpty()
             cloudRepository.changeStatus(
                 ticketId = incident.id,
                 newStatus = IncidentStatus.RESOLVED,
                 actor = actorOf(user),
                 note = "Resolvido com prova ${if (prepared.isVideo) "em vídeo" else "fotográfica"}",
                 extra = mapOf(
-                    "proofPending" to true,
+                    "resolutionProofUrl" to localProofUrl,
+                    "resolutionProofThumbUrl" to localThumbUrl,
+                    "proofPending" to false,
                     "resolutionProofIsVideo" to prepared.isVideo,
                     "reopenReason" to ""
                 )

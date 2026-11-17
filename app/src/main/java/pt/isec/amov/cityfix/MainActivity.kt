@@ -94,6 +94,9 @@ import pt.isec.amov.cityfix.viewmodel.OperatorViewModel
 import pt.isec.amov.cityfix.viewmodel.OperatorViewModelFactory
 import pt.isec.amov.cityfix.viewmodel.ReportIncidentViewModel
 import pt.isec.amov.cityfix.viewmodel.ReportIncidentViewModelFactory
+import pt.isec.amov.cityfix.utils.CityFixUtils
+import androidx.compose.ui.res.stringResource
+
 
 class MainActivity : ComponentActivity() {
     /** Ticket a abrir quando a app é iniciada a partir de uma notificação. */
@@ -145,6 +148,8 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
     // Deteção de impactos: magnitude do último impacto por confirmar (null = sem diálogo)
     var pendingImpact by remember { mutableStateOf<Float?>(null) }
     var impactMagnitudeForReport by remember { mutableStateOf<Float?>(null) }
+    var isAnonOutOfBounds by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(Unit) {
         val permissions = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -166,12 +171,20 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
         } else {
             ProximityService.stop(context)
         }
+        if (user.role == UserRole.ANONYMOUS && LocationTracker.hasPermission(context)) {
+            val loc = LocationTracker.currentLocation(context)
+            isAnonOutOfBounds = loc != null && !CityFixUtils.isWithinPracaRepublica(loc.latitude, loc.longitude)
+        } else {
+            isAnonOutOfBounds = false
+        }
     }
 
     // Abrir o ticket indicado numa notificação
     LaunchedEffect(pendingTicketId) {
         pendingTicketId?.let {
-            navController.navigate(IncidentDetailRoute(it)) { launchSingleTop = true }
+            if (it != "mfa") {
+                navController.navigate(IncidentDetailRoute(it)) { launchSingleTop = true }
+            }
             onPendingTicketHandled()
         }
     }
@@ -258,7 +271,9 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
             composable<IncidentListRoute> {
                 IncidentListScreen(
                     incidents = incidentState.incidents.visibleTo(user),
-                    onIncidentClick = { id -> navController.navigate(IncidentDetailRoute(id)) }
+                    onIncidentClick = { id -> navController.navigate(IncidentDetailRoute(id)) },
+                    currentUser = user,
+                    isAnonymousOutOfBounds = isAnonOutOfBounds
                 )
             }
             composable<IncidentDetailRoute> { backStack ->
@@ -379,7 +394,10 @@ private fun CityFixRoot(app: CityFixApp, pendingTicketId: String?, onPendingTick
                     onPasswordChange = formVm::onPasswordChanged,
                     onSubmit = { if (formState.isRegisterMode) formVm.register(onSignedIn) else formVm.login(onSignedIn) },
                     onGuest = { authVm.continueAsGuest { navController.popBackStack() } },
-                    onForgotPassword = formVm::resetPassword
+                    onForgotPassword = formVm::resetPassword,
+                    onMfaCodeChange = formVm::onMfaCodeChanged,
+                    onVerifyMfa = { formVm.verifyMfa(onSignedIn) },
+                    onCancelMfa = formVm::cancelMfa
                 )
             }
         }
@@ -397,12 +415,12 @@ private fun MainTopAppBar(
     onLogout: () -> Unit
 ) {
     val title = when {
-        destination?.hasRoute<IncidentDetailRoute>() == true -> "Detalhes da Ocorrência"
-        destination?.hasRoute<ReportIncidentRoute>() == true -> "Nova Ocorrência"
-        destination?.hasRoute<EditProfileRoute>() == true -> "Editar Perfil"
-        destination?.hasRoute<AuthRoute>() == true -> "Autenticação"
-        destination?.hasRoute<OperatorRoute>() == true -> "Gestão"
-        else -> "CityFix"
+        destination?.hasRoute<IncidentDetailRoute>() == true -> stringResource(R.string.nav_incident_details)
+        destination?.hasRoute<ReportIncidentRoute>() == true -> stringResource(R.string.nav_new_incident)
+        destination?.hasRoute<EditProfileRoute>() == true -> stringResource(R.string.nav_profile)
+        destination?.hasRoute<AuthRoute>() == true -> stringResource(R.string.nav_login)
+        destination?.hasRoute<OperatorRoute>() == true -> stringResource(R.string.nav_operator_panel)
+        else -> stringResource(R.string.app_name)
     }
     TopAppBar(
         title = {
@@ -411,9 +429,9 @@ private fun MainTopAppBar(
                 if (destination.isTopLevel()) {
                     Text(
                         text = when (user.role) {
-                            UserRole.ANONYMOUS -> "Cidadão Anónimo (Visualização)"
-                            UserRole.CITIZEN -> if (user.active) "Munícipe Validado" else "Munícipe (Pendente de Validação)"
-                            UserRole.OPERATOR -> "Operador Municipal"
+                            UserRole.ANONYMOUS -> stringResource(R.string.role_anonymous)
+                            UserRole.CITIZEN -> if (user.active) stringResource(R.string.role_citizen) else stringResource(R.string.status_pending_validation)
+                            UserRole.OPERATOR -> stringResource(R.string.role_operator)
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -425,16 +443,16 @@ private fun MainTopAppBar(
         navigationIcon = {
             if (!destination.isTopLevel()) {
                 IconButton(onClick = { navController.navigateUp() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             }
         },
         actions = {
             if (destination.isTopLevel()) {
                 if (user.role == UserRole.ANONYMOUS) {
-                    IconButton(onClick = onLogin) { Icon(Icons.AutoMirrored.Filled.Login, contentDescription = "Iniciar sessão") }
+                    IconButton(onClick = onLogin) { Icon(Icons.AutoMirrored.Filled.Login, contentDescription = stringResource(R.string.btn_login)) }
                 } else {
-                    IconButton(onClick = onLogout) { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Terminar sessão") }
+                    IconButton(onClick = onLogout) { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = stringResource(R.string.btn_logout)) }
                 }
             }
         }
@@ -444,12 +462,13 @@ private fun MainTopAppBar(
 @Composable
 private fun MainBottomBar(navController: NavHostController, destination: NavDestination?, isOperator: Boolean) {
     NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
-        BottomItem(navController, destination, DashboardRoute, Icons.Default.Home, "Início")
-        BottomItem(navController, destination, IncidentListRoute, Icons.AutoMirrored.Filled.List, "Ocorrências")
-        BottomItem(navController, destination, ProfileRoute, Icons.Default.Person, "Perfil")
-        if (isOperator) BottomItem(navController, destination, OperatorRoute, Icons.Default.Check, "Gestão")
+        BottomItem(navController, destination, DashboardRoute, Icons.Default.Home, stringResource(R.string.nav_dashboard))
+        BottomItem(navController, destination, IncidentListRoute, Icons.AutoMirrored.Filled.List, stringResource(R.string.nav_public_incidents))
+        BottomItem(navController, destination, ProfileRoute, Icons.Default.Person, stringResource(R.string.nav_profile))
+        if (isOperator) BottomItem(navController, destination, OperatorRoute, Icons.Default.Check, stringResource(R.string.nav_operator_panel))
     }
 }
+ 
 
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.BottomItem(

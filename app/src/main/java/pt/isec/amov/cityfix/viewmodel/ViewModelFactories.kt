@@ -32,7 +32,7 @@ class OperatorViewModelFactory(private val app: CityFixApp) : ViewModelProvider.
 class AuthFormViewModelFactory(private val app: CityFixApp, private val startInRegisterMode: Boolean) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AuthFormViewModel(app.cloudRepository, app.mediaRepository, startInRegisterMode) as T
+        AuthFormViewModel(app.cloudRepository, app.mediaRepository, startInRegisterMode, app.ticketNotifier) as T
 }
 
 /** ViewModel com âmbito no ecrã de nova ocorrência. */

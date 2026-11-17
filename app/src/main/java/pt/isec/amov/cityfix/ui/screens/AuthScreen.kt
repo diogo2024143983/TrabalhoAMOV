@@ -66,20 +66,65 @@ fun AuthScreen(
     onSubmit: () -> Unit,
     onGuest: () -> Unit,
     modifier: Modifier = Modifier,
-    onForgotPassword: () -> Unit = {}
+    onForgotPassword: () -> Unit = {},
+    onMfaCodeChange :(String) -> Unit = {},
+    onVerifyMfa: () -> Unit = {},
+    onCancelMfa: () -> Unit = {}
 ) {
-    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) onPhotoChange(uri)
+    val photoPicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) onPhotoChange(uri)
+        }
+    if (state.mfaStep) {
+        Column(
+            modifier = modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Verificação de 2.º Fator (MFA)", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth())
+            Text(
+                "Introduza o código de 6 dígitos enviado para o seu dispositivo para concluir a autenticação.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            )
+            state.message?.let {
+                Text(it, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
+            }
+            ValidatedField(
+                value = state.mfaCode,
+                onValueChange = onMfaCodeChange,
+                label = "Código MFA (6 dígitos) *",
+                error = state.mfaError,
+                keyboardType = KeyboardType.Number
+            )
+            Button(
+                onClick = onVerifyMfa,
+                enabled = state.mfaCode.length == 6,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Confirmar Código e Entrar")
+            }
+            OutlinedButton(onClick = onCancelMfa, modifier = Modifier.fillMaxWidth()) {
+                Text("Cancelar")
+            }
+        }
+        return
     }
 
     // Passo 1 do registo: escolher o tipo de conta
     if (state.isRegisterMode && state.role == null) {
         Column(
-            modifier = modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
+            modifier = modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Criar Nova Conta", style = MaterialTheme.typography.headlineSmall)
-            Text("Selecione primeiro o tipo de conta que pretende criar:", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "Selecione primeiro o tipo de conta que pretende criar:",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             RoleCard(
                 icon = Icons.Default.Person,
                 title = "Conta de Munícipe",
@@ -94,7 +139,10 @@ fun AuthScreen(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 onClick = { onRoleSelected(UserRole.OPERATOR) }
             )
-            TextButton(onClick = { onRegisterModeChange(false) }, modifier = Modifier.fillMaxWidth()) {
+            TextButton(
+                onClick = { onRegisterModeChange(false) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Já tens conta? Inicia sessão")
             }
         }
@@ -103,7 +151,10 @@ fun AuthScreen(
 
     val role = state.role ?: UserRole.CITIZEN
     Column(
-        modifier = modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState()),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(20.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -119,28 +170,74 @@ fun AuthScreen(
             if (state.isRegisterMode) {
                 TextButton(onClick = { onRoleSelected(null) }) { Text("← Mudar tipo de conta") }
             } else {
-                Text("Introduza o seu email e palavra-passe.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Introduza o seu email e palavra-passe.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
         if (state.isRegisterMode) {
-            Surface(modifier = Modifier.size(96.dp).clip(CircleShape), color = MaterialTheme.colorScheme.primaryContainer) {
+            Surface(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
                 if (state.photoUri != null) {
-                    AsyncImage(model = state.photoUri, contentDescription = "Foto selecionada", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    AsyncImage(
+                        model = state.photoUri,
+                        contentDescription = "Foto selecionada",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 } else {
-                    Icon(Icons.Default.Person, contentDescription = "Sem foto", modifier = Modifier.padding(20.dp).fillMaxSize(), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Sem foto",
+                        modifier = Modifier
+                            .padding(20.dp)
+                            .fillMaxSize(),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
             }
-            OutlinedButton(onClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
+            OutlinedButton(onClick = {
+                photoPicker.launch(
+                    PickVisualMediaRequest(
+                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                    )
+                )
+            }) {
                 Text(if (state.photoUri != null) "Trocar Foto" else "Adicionar Foto (Opcional)")
             }
             ValidatedField(state.name, onNameChange, "Nome Completo *", state.nameError)
-            ValidatedField(state.phone, onPhoneChange, "Número de Telefone *", state.phoneError, KeyboardType.Phone)
-            ValidatedField(state.nif, onNifChange, "NIF (Único) *", state.nifError, KeyboardType.Number)
+            ValidatedField(
+                state.phone,
+                onPhoneChange,
+                "Número de Telefone *",
+                state.phoneError,
+                KeyboardType.Phone
+            )
+            ValidatedField(
+                state.nif,
+                onNifChange,
+                "NIF (Único) *",
+                state.nifError,
+                KeyboardType.Number
+            )
             if (role == UserRole.CITIZEN) {
-                ValidatedField(state.georeference, onGeoreferenceChange, "Morada / Georreferenciação *", state.georeferenceError)
+                ValidatedField(
+                    state.georeference,
+                    onGeoreferenceChange,
+                    "Morada / Georreferenciação *",
+                    state.georeferenceError
+                )
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = state.impactDetectionEnabled, onCheckedChange = onImpactDetectionChange)
+                    Switch(
+                        checked = state.impactDetectionEnabled,
+                        onCheckedChange = onImpactDetectionChange
+                    )
                     Spacer(Modifier.size(8.dp))
                     Text("Ativar Deteção Automática de Impactos")
                 }
@@ -174,18 +271,32 @@ fun AuthScreen(
         if (state.isLoading) {
             CircularProgressIndicator()
         } else {
-            Button(onClick = onSubmit, enabled = state.isValid, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = onSubmit,
+                enabled = state.isValid,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text(if (state.isRegisterMode) "Criar Conta" else "Entrar")
             }
         }
-        TextButton(onClick = { onRegisterModeChange(!state.isRegisterMode) }, modifier = Modifier.fillMaxWidth()) {
+        TextButton(
+            onClick = { onRegisterModeChange(!state.isRegisterMode) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text(if (state.isRegisterMode) "Já tens conta? Inicia sessão" else "Não tens conta? Criar nova conta")
         }
         if (!state.isRegisterMode) {
-            TextButton(onClick = onForgotPassword, enabled = !state.isLoading, modifier = Modifier.fillMaxWidth()) {
+            TextButton(
+                onClick = onForgotPassword,
+                enabled = !state.isLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Esqueci-me da palavra-passe")
             }
-            OutlinedButton(onClick = onGuest, modifier = Modifier.fillMaxWidth()) { Text("Continuar como Cidadão Anónimo") }
+            OutlinedButton(
+                onClick = onGuest,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Continuar como Cidadão Anónimo") }
         }
         Spacer(Modifier.height(24.dp))
     }
@@ -212,17 +323,31 @@ private fun ValidatedField(
 }
 
 @Composable
-private fun RoleCard(icon: ImageVector, title: String, subtitle: String, color: Color, onClick: () -> Unit) {
+private fun RoleCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    color: Color,
+    onClick: () -> Unit
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = color),
         shape = MaterialTheme.shapes.large
     ) {
-        Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(40.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
                 Text(subtitle, style = MaterialTheme.typography.bodySmall)
             }
         }
@@ -235,9 +360,18 @@ private fun AuthScreenPreview() {
     CityFixTheme {
         AuthScreen(
             state = AuthFormUiState(email = "ana@", emailError = "Email inválido"),
-            onRegisterModeChange = {}, onRoleSelected = {}, onNameChange = {}, onPhoneChange = {}, onNifChange = {},
-            onGeoreferenceChange = {}, onImpactDetectionChange = {}, onPhotoChange = {}, onEmailChange = {},
-            onPasswordChange = {}, onSubmit = {}, onGuest = {}
+            onRegisterModeChange = {},
+            onRoleSelected = {},
+            onNameChange = {},
+            onPhoneChange = {},
+            onNifChange = {},
+            onGeoreferenceChange = {},
+            onImpactDetectionChange = {},
+            onPhotoChange = {},
+            onEmailChange = {},
+            onPasswordChange = {},
+            onSubmit = {},
+            onGuest = {}
         )
     }
 }

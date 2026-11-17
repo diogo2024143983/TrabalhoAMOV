@@ -36,7 +36,12 @@ class AuthViewModel(
         viewModelScope.launch {
             localRepository.loadUser()?.let { saved -> _state.update { it.copy(user = saved) } }
         }
-        cloudRepository.currentUserId?.let(::observeUser)
+        val uid = cloudRepository.currentUserId
+        if (uid != null) {
+            observeUser(uid)
+        } else {
+            continueAsGuest()
+        }
     }
 
     /** Chamado pelo AuthFormViewModel depois de um login/registo com sucesso. */
@@ -93,7 +98,7 @@ class AuthViewModel(
         cloudRepository.unsubscribeFromRoleTopics()
         cloudRepository.logout()
         viewModelScope.launch { localRepository.clearUser() }
-        _state.update { it.copy(user = ANONYMOUS_USER) }
+        continueAsGuest()
     }
 
     override fun onCleared() {

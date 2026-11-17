@@ -19,6 +19,8 @@ import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.model.StatusChange
 import java.util.UUID
+import pt.isec.amov.cityfix.model.MediaAttachment
+import java.io.File
 
 /**
  * Estado imutável do formulário de nova ocorrência (FixIt Project Bridge, P08):
@@ -159,6 +161,14 @@ class ReportIncidentViewModel(
                 return@launch
             }
 
+            val localAttachments = prepared.map { item ->
+                MediaAttachment(
+                    url = Uri.fromFile(File(item.mediaPath)).toString(),
+                    thumbnailUrl = item.thumbnailPath?.let { Uri.fromFile(File(it)).toString() }.orEmpty(),
+                    isVideo = item.isVideo
+                )
+            }
+
             val now = System.currentTimeMillis()
             val ticketId = UUID.randomUUID().toString()
             val incident = Incident(
@@ -176,7 +186,8 @@ class ReportIncidentViewModel(
                 latitude = form.latitude,
                 longitude = form.longitude,
                 locationAddress = form.locationAddress.trim(),
-                mediaPendingCount = prepared.size,
+                media = localAttachments,
+                mediaPendingCount = 0,
                 createdAt = now,
                 history = listOf(StatusChange(IncidentStatus.OPEN, now, authorId, user.name, user.role, "Ocorrência submetida")),
                 supporterIds = listOf(authorId)
