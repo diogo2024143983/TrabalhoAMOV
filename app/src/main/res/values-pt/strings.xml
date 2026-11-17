@@ -94,4 +94,18 @@
     <string name="btn_continue_as_guest">Continuar como Munícipe Anónimo</string>
     <string name="forgot_password">Recuperar Palavra-passe</string>
     <string name="account_pending_warning">A sua conta aguarda validação municipal. Pode consultar ocorrências públicas, mas a submissão de novos pedidos encontra-se temporariamente suspensa.</string>
+
+
+    <!-- Dashboard & List extra -->
+    <string name="dash_hero_anon_title">Melhore a sua cidade</string>
+    <string name="dash_hero_user_title">Olá, %s!</string>
+    <string name="dash_hero_anon_sub">Consulte o estado de resolução das ocorrências na sua cidade.</string>
+    <string name="dash_hero_user_sub">Reporte ocorrências públicas ou acompanhe a evolução das que já registou.</string>
+    <string name="dash_community_title">Ocorrências da Comunidade</string>
+    <string name="dash_community_sub">Consulte os problemas ativos e acompanhe a resolução em tempo real.</string>
+    <string name="btn_explore_incidents">Explorar ocorrências</string>
+    <string name="list_title">Ocorrências Registadas</string>
+    <string name="list_subtitle">Lista de problemas reportados pela comunidade</string>
+    <string name="filter_public_active">Públicas Ativas</string>
+    <string name="list_empty">Ainda não existem ocorrências nesta vista.</string>
 </resources>

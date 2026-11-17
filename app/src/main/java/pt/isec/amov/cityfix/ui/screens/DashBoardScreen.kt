@@ -16,8 +16,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.CityFixUser
 import pt.isec.amov.cityfix.model.IncidentList
 import pt.isec.amov.cityfix.model.UserRole
@@ -45,15 +47,18 @@ fun DashboardScreen(
             ) {
                 Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = if (user.role == UserRole.ANONYMOUS) "Melhore a sua cidade" else "Olá, ${user.name}!",
+                        text = if (user.role == UserRole.ANONYMOUS)
+                            stringResource(R.string.dash_hero_anon_title)
+                        else
+                            stringResource(R.string.dash_hero_user_title, user.name),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
                         text = when {
-                            user.role == UserRole.ANONYMOUS -> "Consulte o estado de resolução das ocorrências na sua cidade."
-                            user.role == UserRole.CITIZEN && !user.active -> "A tua conta está a aguardar validação do NIF por um operador municipal."
-                            else -> "Reporte ocorrências públicas ou acompanhe a evolução das que já registou."
+                            user.role == UserRole.ANONYMOUS -> stringResource(R.string.dash_hero_anon_sub)
+                            user.role == UserRole.CITIZEN && !user.active -> stringResource(R.string.account_pending_warning)
+                            else -> stringResource(R.string.dash_hero_user_sub)
                         },
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                     )
@@ -63,18 +68,23 @@ fun DashboardScreen(
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                StatCard("Total", incidents.totalCount.toString(), MaterialTheme.colorScheme.primaryContainer, Modifier.weight(1f))
                 StatCard(
-                    "% Ativas",
-                    "${incidents.activePercentage}% (${incidents.activeCount})",
-                    MaterialTheme.colorScheme.secondaryContainer,
-                    Modifier.weight(1f)
+                    label = stringResource(R.string.dash_total_tickets),
+                    value = incidents.totalCount.toString(),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    "Tempo Médio",
-                    incidents.averageRepairDays.takeIf { it > 0.0 }?.let { String.format(Locale.getDefault(), "%.1f d", it) } ?: "--",
-                    Color(0xFFF4E4C8),
-                    Modifier.weight(1f)
+                    label = stringResource(R.string.dash_active_percentage),
+                    value = "${incidents.activePercentage}% (${incidents.activeCount})",
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    label = stringResource(R.string.dash_avg_resolution_time),
+                    value = incidents.averageRepairDays.takeIf { it > 0.0 }?.let { String.format(Locale.getDefault(), "%.1f d", it) } ?: "--",
+                    color = Color(0xFFF4E4C8),
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -86,12 +96,12 @@ fun DashboardScreen(
                 shape = MaterialTheme.shapes.medium
             ) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Ocorrências da Comunidade", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.dash_community_title), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Consulte os problemas ativos e acompanhe a resolução em tempo real.",
+                        stringResource(R.string.dash_community_sub),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Button(onClick = onIncidents) { Text("Explorar ocorrências") }
+                    Button(onClick = onIncidents) { Text(stringResource(R.string.btn_explore_incidents)) }
                 }
             }
         }

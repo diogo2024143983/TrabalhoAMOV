@@ -22,9 +22,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.CityFixUser
 import pt.isec.amov.cityfix.model.Incident
 import pt.isec.amov.cityfix.model.UserRole
@@ -47,13 +49,13 @@ fun IncidentListScreen(
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Fora do Perímetro de 10 km",
+                        stringResource(R.string.geofence_out_of_bounds_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Text(
-                        "O acesso de Munícipe Anónimo está restrito a um raio de 10 km com centro na Praça da República (Coimbra). Inicie sessão para consultar ocorrências fora deste perímetro.",
+                        stringResource(R.string.geofence_out_of_bounds_message),
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
@@ -76,8 +78,8 @@ fun IncidentListScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
-            Text("Ocorrências Registadas", style = MaterialTheme.typography.headlineSmall)
-            Text("Lista de problemas reportados pela comunidade", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.list_title), style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.list_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (currentUser.role == UserRole.CITIZEN) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -86,12 +88,12 @@ fun IncidentListScreen(
                     FilterChip(
                         selected = !onlyMine,
                         onClick = { onlyMine = false },
-                        label = { Text("Públicas Ativas") }
+                        label = { Text(stringResource(R.string.filter_public_active)) }
                     )
                     FilterChip(
                         selected = onlyMine,
                         onClick = { onlyMine = true },
-                        label = { Text("As Minhas Ocorrências") }
+                        label = { Text(stringResource(R.string.nav_my_tickets)) }
                     )
                 }
             }
@@ -99,7 +101,7 @@ fun IncidentListScreen(
         if (filteredIncidents.isEmpty()) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
-                    Text("Ainda não existem ocorrências nesta vista.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.list_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {

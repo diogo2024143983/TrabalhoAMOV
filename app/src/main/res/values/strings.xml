@@ -94,4 +94,18 @@
     <string name="btn_continue_as_guest">Continue as Anonymous Citizen</string>
     <string name="forgot_password">Forgot Password?</string>
     <string name="account_pending_warning">Your account is pending municipal validation. You can browse public incidents, but incident creation is temporarily on hold.</string>
+
+
+    <!-- Dashboard & List extra -->
+    <string name="dash_hero_anon_title">Improve your city</string>
+    <string name="dash_hero_user_title">Hello, %s!</string>
+    <string name="dash_hero_anon_sub">Check the resolution status of incidents in your city.</string>
+    <string name="dash_hero_user_sub">Report public incidents or track the progress of your reports.</string>
+    <string name="dash_community_title">Community Incidents</string>
+    <string name="dash_community_sub">Browse active issues and track resolution in real time.</string>
+    <string name="btn_explore_incidents">Explore incidents</string>
+    <string name="list_title">Reported Incidents</string>
+    <string name="list_subtitle">Issues reported by the community</string>
+    <string name="filter_public_active">Public Active</string>
+    <string name="list_empty">No incidents in this view yet.</string>
 </resources>
