@@ -56,6 +56,11 @@ import pt.isec.amov.cityfix.ui.components.incidentSituationLabel
 import pt.isec.amov.cityfix.ui.theme.CityFixTheme
 import pt.isec.amov.cityfix.utils.LocationTracker
 import pt.isec.amov.cityfix.viewmodel.ReportIncidentUiState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.input.ImeAction
 
 @Composable
 fun ReportIncidentScreen(
@@ -153,12 +158,30 @@ fun ReportIncidentScreen(
                     )
                 }
             }
+            val searchAddress: () -> Unit = {
+                scope.launch {
+                    val coords = LocationTracker.geocodeAddress(context, state.locationAddress)
+                    if (coords != null) {
+                        onLocationSelected(coords.first, coords.second, "Morada encontrada no mapa!")
+                    } else {
+                        onLocationMessage("Morada não encontrada. Tente ajustar ou toque no mapa.")
+                    }
+                }
+            }
             OutlinedTextField(
                 value = state.locationAddress,
                 onValueChange = onAddressChange,
                 label = { Text("Morada / Localização *") },
                 isError = state.addressError != null,
                 supportingText = state.addressError?.let { { Text(it) } },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { searchAddress() }),
+                trailingIcon = {
+                    IconButton(onClick = searchAddress) {
+                        Icon(Icons.Default.Search, contentDescription = "Procurar morada no mapa")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
