@@ -7,11 +7,8 @@
     <string name="nav_my_tickets">As Minhas Ocorrências</string>
     <string name="nav_new_incident">Nova Ocorrência</string>
     <string name="nav_operator_panel">Gestão</string>
-    <string name="nav_validate_citizens">Validar Munícipes</string>
-    <string name="nav_categories">Categorias</string>
     <string name="nav_profile">Perfil</string>
     <string name="nav_login">Autenticação</string>
-    <string name="nav_register">Registar</string>
     <string name="nav_incident_details">Detalhes da Ocorrência</string>
 
     <!-- Perfis e estado -->
@@ -46,10 +43,6 @@
     <string name="dash_days_format">%.1f dias</string>
     <string name="dash_improve_city">Melhore a sua cidade</string>
     <string name="dash_hello">Olá, %1$s!</string>
-    <string name="dash_anonymous_message">Consulte o estado de resolução das ocorrências na sua cidade.</string>
-    <string name="dash_user_message">Reporte ocorrências públicas ou acompanhe a evolução das que já registou.</string>
-    <string name="dash_community_title">Ocorrências da Comunidade</string>
-    <string name="dash_community_message">Consulte os problemas ativos e acompanhe a resolução em tempo real.</string>
     <string name="dash_explore">Explorar ocorrências</string>
 
     <!-- Lista -->
@@ -67,18 +60,11 @@
     <!-- Geofence e localização -->
     <string name="geofence_out_of_bounds_title">Fora do Perímetro de 10 km</string>
     <string name="geofence_out_of_bounds_message">O acesso de Munícipe Anónimo está restrito a um raio de 10 km com centro na Praça da República (Coimbra). Inicie sessão para consultar ocorrências fora deste perímetro.</string>
-    <string name="geofence_operator_distance_required">É obrigatório estar a menos de 20 metros da ocorrência para iniciar a resolução.</string>
-    <string name="geofence_operator_near_alert">Alerta de Proximidade: encontra-se a menos de 20 m de uma ocorrência ativa!</string>
-    <string name="duplicate_warning_title">Possível Ocorrência Duplicada</string>
-    <string name="duplicate_warning_message">Já existe uma ocorrência registada a menos de 10 metros deste local. Pretende apoiar a ocorrência existente?</string>
-    <string name="btn_upvote_existing">Apoiar Existente</string>
-    <string name="btn_proceed_anyway">Submeter na Mesma</string>
     <string name="bg_location_title">Localização em segundo plano</string>
     <string name="bg_location_message">Para avisar os munícipes quando está a menos de 20 m de uma ocorrência, mesmo com a app fechada, o CityFix precisa da opção “Permitir sempre”.</string>
 
     <!-- Deteção de impactos -->
     <string name="impact_alert_title">Impacto na Via Detetado</string>
-    <string name="impact_alert_message">Foi detetada uma desaceleração vertical brusca. Deseja reportar uma anomalia na via na localização atual?</string>
     <string name="impact_alert_message_value">Detetámos um solavanco forte na estrada (%1$.1f m/s²). Quer reportar um buraco ou anomalia neste local?</string>
     <string name="btn_report_hazard">Reportar</string>
     <string name="btn_dismiss">Ignorar</string>
@@ -106,10 +92,6 @@
     <string name="report_map_picked">Local escolhido no mapa.</string>
     <string name="report_duplicate_supported">Já existia uma ocorrência igual a menos de 10 m. Foi adicionado como apoiante.</string>
     <string name="report_submitted">Ocorrência registada! A multimédia será enviada em segundo plano.</string>
-    <string name="resolution_proof_required">É obrigatório anexar foto ou vídeo comprovativo da reparação.</string>
-    <string name="btn_reopen_ticket">Reabrir Ocorrência</string>
-    <string name="reopen_window_notice">Pode reabrir esta ocorrência no prazo de 5 dias após a resolução caso o problema persista.</string>
-    <string name="ticket_closed_notice">Esta ocorrência encontra-se encerrada e já não pode ser alterada.</string>
 
     <!-- Detalhe -->
     <string name="detail_not_found">Ocorrência não encontrada.</string>
@@ -171,10 +153,8 @@
 
     <!-- Autenticação -->
     <string name="email_label">Email</string>
-    <string name="password_label">Palavra-passe</string>
     <string name="name_label">Nome Completo</string>
     <string name="phone_label">Número de Telefone</string>
-    <string name="nif_label">NIF</string>
     <string name="address_label">Morada / Georreferenciação</string>
     <string name="impact_sensor_toggle">Ativar Deteção Automática de Impactos</string>
     <string name="btn_login">Iniciar Sessão</string>
@@ -275,6 +255,11 @@
     <string name="err_proof_processing">Não foi possível processar a prova de resolução.</string>
     <string name="err_reopen_expired">Prazo de 5 dias expirado. A ocorrência encontra-se encerrada.</string>
     <string name="err_reopen_reason">É obrigatório justificar o motivo da reabertura.</string>
+    <string name="err_network">Sem ligação à internet. Verifique a rede e tente novamente.</string>
+    <string name="err_email_in_use">Este email já está associado a outra conta.</string>
+    <string name="err_too_many_requests">Demasiadas tentativas. Aguarde alguns minutos e tente novamente.</string>
+    <string name="err_load_failed">Não foi possível carregar as ocorrências.</string>
+    <string name="err_update_failed">Não foi possível atualizar a ocorrência.</string>
 
     <!-- Notificações -->
     <string name="channel_updates">Atualizações CityFix</string>

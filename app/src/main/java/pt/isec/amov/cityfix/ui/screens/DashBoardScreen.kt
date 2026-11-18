@@ -43,7 +43,9 @@ fun DashboardScreen(
     incidents: IncidentList,
     onIncidents: () -> Unit,
     modifier: Modifier = Modifier,
-    onIncidentClick: (String) -> Unit = {}
+    onIncidentClick: (String) -> Unit = {},
+    /** true quando o botão flutuante "+" está visível: o botão da lista deixa-lhe espaço. */
+    reserveFabSpace: Boolean = false
 ) {
     val isAnonymous = user.role == UserRole.ANONYMOUS
     val visibleIncidents = incidents.visibleTo(user)
@@ -139,7 +141,9 @@ fun DashboardScreen(
         OutlinedButton(
             onClick = onIncidents,
             shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = if (reserveFabSpace) 80.dp else 0.dp)
         ) {
             Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(8.dp))

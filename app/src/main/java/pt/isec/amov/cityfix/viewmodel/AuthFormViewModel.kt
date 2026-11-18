@@ -135,7 +135,7 @@ class AuthFormViewModel(
                 }
             },
             onError = { e ->
-                _formState.update { it.copy(isLoading = false, message = e.localizedMessage ?: strings.get(R.string.err_login_failed)) }
+                _formState.update { it.copy(isLoading = false, message = authError(e, R.string.err_login_failed)) }
             }
         )
     }
@@ -179,7 +179,7 @@ class AuthFormViewModel(
                 _formState.update { it.copy(isLoading = false, messageIsError = false, message = strings.get(R.string.reset_email_sent, email)) }
             },
             onError = { e ->
-                _formState.update { it.copy(isLoading = false, messageIsError = true, message = e.localizedMessage ?: strings.get(R.string.err_reset_failed)) }
+                _formState.update { it.copy(isLoading = false, messageIsError = true, message = authError(e, R.string.err_reset_failed)) }
             }
         )
     }
@@ -223,12 +223,26 @@ class AuthFormViewModel(
                         }
                     },
                     onError = { e ->
-                        _formState.update { it.copy(isLoading = false, message = e.localizedMessage ?: strings.get(R.string.err_register_failed)) }
+                        _formState.update { it.copy(isLoading = false, message = authError(e, R.string.err_register_failed)) }
                     }
                 )
             }
         }
     }
+
+    /**
+     * As mensagens do Firebase Auth vêm sempre em inglês: são convertidas em textos traduzidos.
+     * Credenciais inválidas e utilizador inexistente usam a mesma mensagem (não revela se o email existe).
+     */
+    private fun authError(e: Exception, fallback: Int): String = strings.get(
+        when (e) {
+            is com.google.firebase.FirebaseNetworkException -> R.string.err_network
+            is com.google.firebase.auth.FirebaseAuthUserCollisionException -> R.string.err_email_in_use
+            is com.google.firebase.auth.FirebaseAuthWeakPasswordException -> R.string.err_password_short
+            is com.google.firebase.FirebaseTooManyRequestsException -> R.string.err_too_many_requests
+            else -> fallback
+        }
+    )
 
     private fun uploadProfilePhoto(uid: String, user: CityFixUser, photo: Uri, onDone: () -> Unit) {
         cloudRepository.uploadMedia(

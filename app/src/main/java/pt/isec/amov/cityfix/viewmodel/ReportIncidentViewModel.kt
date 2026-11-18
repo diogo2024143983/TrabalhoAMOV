@@ -100,7 +100,8 @@ class ReportIncidentViewModel(
         it.copy(
             latitude = latitude,
             longitude = longitude,
-            locationAddress = it.locationAddress.ifBlank { "%.5f, %.5f".format(latitude, longitude) },
+            locationAddress = it.locationAddress.ifBlank { // Locale.ROOT: ponto decimal, para não confundir com a vírgula que separa latitude e longitude
+                String.format(java.util.Locale.ROOT, "%.5f, %.5f", latitude, longitude) },
             addressError = null,
             locationMessage = message
         )
@@ -150,7 +151,7 @@ class ReportIncidentViewModel(
                 ticketId = duplicate.id,
                 userId = authorId,
                 onSuccess = { onResult(true, strings.get(R.string.report_duplicate_supported)) },
-                onError = { e -> onResult(false, e.localizedMessage ?: strings.get(R.string.err_support_failed)) }
+                onError = { _ -> onResult(false, strings.get(R.string.err_support_failed)) }
             )
             return
         }

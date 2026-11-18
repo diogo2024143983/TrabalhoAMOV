@@ -7,11 +7,8 @@
     <string name="nav_my_tickets">My Incidents</string>
     <string name="nav_new_incident">Report Incident</string>
     <string name="nav_operator_panel">Management</string>
-    <string name="nav_validate_citizens">Validate Citizens</string>
-    <string name="nav_categories">Categories</string>
     <string name="nav_profile">Profile</string>
     <string name="nav_login">Sign In</string>
-    <string name="nav_register">Register</string>
     <string name="nav_incident_details">Incident Details</string>
 
     <!-- Roles & Status -->
@@ -46,10 +43,6 @@
     <string name="dash_days_format">%.1f days</string>
     <string name="dash_improve_city">Improve your city</string>
     <string name="dash_hello">Hello, %1$s!</string>
-    <string name="dash_anonymous_message">Check the resolution status of incidents in your city.</string>
-    <string name="dash_user_message">Report public incidents or follow the progress of the ones you reported.</string>
-    <string name="dash_community_title">Community Incidents</string>
-    <string name="dash_community_message">See the active problems and follow their resolution in real time.</string>
     <string name="dash_explore">Explore incidents</string>
 
     <!-- Incident list -->
@@ -66,18 +59,11 @@
     <!-- Geofencing & Location -->
     <string name="geofence_out_of_bounds_title">Outside the 10 km Area</string>
     <string name="geofence_out_of_bounds_message">Anonymous access is limited to a 10 km radius around Praça da República (Coimbra). Sign in to see incidents outside this area.</string>
-    <string name="geofence_operator_distance_required">You must be within 20 meters of the incident to start resolution.</string>
-    <string name="geofence_operator_near_alert">Proximity Alert: You are within 20m of an active incident!</string>
-    <string name="duplicate_warning_title">Possible Duplicate Incident</string>
-    <string name="duplicate_warning_message">An incident has already been reported within 10 meters of this location. Would you like to upvote the existing ticket?</string>
-    <string name="btn_upvote_existing">Support Existing</string>
-    <string name="btn_proceed_anyway">Submit Anyway</string>
     <string name="bg_location_title">Background location</string>
     <string name="bg_location_message">To let citizens know when you are within 20 m of an incident, even with the app closed, CityFix needs the “Allow all the time” option.</string>
 
     <!-- Impact Detection -->
     <string name="impact_alert_title">Road Impact Detected</string>
-    <string name="impact_alert_message">A sudden vertical shock was recorded. Would you like to report a road hazard at your current location?</string>
     <string name="impact_alert_message_value">We detected a strong bump on the road (%1$.1f m/s²). Would you like to report a pothole or hazard at this location?</string>
     <string name="btn_report_hazard">Report</string>
     <string name="btn_dismiss">Ignore</string>
@@ -105,10 +91,6 @@
     <string name="report_map_picked">Location chosen on the map.</string>
     <string name="report_duplicate_supported">A matching incident already existed within 10 m. You were added as a supporter.</string>
     <string name="report_submitted">Incident reported! Media will be uploaded in the background.</string>
-    <string name="resolution_proof_required">A photo or video proving the resolution is mandatory.</string>
-    <string name="btn_reopen_ticket">Reopen Ticket</string>
-    <string name="reopen_window_notice">You can reopen this ticket within 5 days of resolution if the issue persists.</string>
-    <string name="ticket_closed_notice">This ticket is closed and can no longer be modified.</string>
 
     <!-- Incident detail -->
     <string name="detail_not_found">Incident not found.</string>
@@ -169,10 +151,8 @@
 
     <!-- Auth -->
     <string name="email_label">Email</string>
-    <string name="password_label">Password</string>
     <string name="name_label">Full Name</string>
     <string name="phone_label">Phone Number</string>
-    <string name="nif_label">Tax Number (NIF)</string>
     <string name="address_label">Address / Georeference</string>
     <string name="impact_sensor_toggle">Enable Automatic Impact Detection</string>
     <string name="btn_login">Sign In</string>
@@ -273,6 +253,11 @@
     <string name="err_proof_processing">Could not process the resolution proof.</string>
     <string name="err_reopen_expired">The 5-day period has expired. The incident is closed.</string>
     <string name="err_reopen_reason">You must give a reason for reopening.</string>
+    <string name="err_network">No internet connection. Check your network and try again.</string>
+    <string name="err_email_in_use">This email is already associated with another account.</string>
+    <string name="err_too_many_requests">Too many attempts. Please wait a few minutes and try again.</string>
+    <string name="err_load_failed">Could not load the incidents.</string>
+    <string name="err_update_failed">Could not update the incident.</string>
 
     <!-- Notifications -->
     <string name="channel_updates">CityFix updates</string>

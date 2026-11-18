@@ -108,7 +108,7 @@ class IncidentViewModel(
                     }
                 }
             },
-            onError = { e -> _state.update { it.copy(message = e.localizedMessage) } }
+            onError = { _ -> _state.update { it.copy(message = strings.get(R.string.err_load_failed)) } }
         )
     }
 
@@ -196,8 +196,8 @@ class IncidentViewModel(
         val incident = _state.value.selectedIncident ?: return
         if (incident.status == IncidentStatus.CLOSED) return
         if (newStatus == IncidentStatus.RESOLVED || newStatus == IncidentStatus.CLOSED) return // usam fluxos próprios
-        cloudRepository.changeStatus(incident.id, newStatus, actorOf(user), note) { e ->
-            _state.update { it.copy(message = e.localizedMessage) }
+        cloudRepository.changeStatus(incident.id, newStatus, actorOf(user), note) { _ ->
+            _state.update { it.copy(message = strings.get(R.string.err_update_failed)) }
         }
     }
 
@@ -280,7 +280,7 @@ class IncidentViewModel(
                     note = strings.get(R.string.history_reopened, reason.trim()),
                     // Novo ciclo de resolução: o início dos trabalhos anterior deixa de se aplicar
                     extra = mapOf("reopenReason" to reason.trim(), "resolvedAt" to null, "workStartedAt" to null),
-                    onError = { e -> onResult(false, e.localizedMessage) }
+                    onError = { _ -> onResult(false, strings.get(R.string.err_update_failed)) }
                 )
                 onResult(true, null)
             }

@@ -266,7 +266,8 @@ fun MainScreen(app: CityFixApp, pendingTicketId: String?, onPendingTicketHandled
                         user = user,
                         incidents = incidentState.incidents,
                         onIncidents = { navController.navigateTopLevel(IncidentListRoute) },
-                        onIncidentClick = { id -> navController.navigate(IncidentDetailRoute(id)) }
+                        onIncidentClick = { id -> navController.navigate(IncidentDetailRoute(id)) },
+                        reserveFabSpace = canReport
                     )
                 }
                 composable<IncidentListRoute> {

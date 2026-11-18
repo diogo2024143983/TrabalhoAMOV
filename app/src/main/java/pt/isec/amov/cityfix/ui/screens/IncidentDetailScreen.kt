@@ -350,7 +350,7 @@ private fun IncidentInfoBlock(incident: Incident, isAnonymous: Boolean, isOperat
         if (!isAnonymous) {
             Text(stringResource(R.string.detail_author, incident.authorName))
             if (isOperator && incident.authorPhone.isNotBlank()) Text(stringResource(R.string.detail_author_contact, incident.authorPhone))
-            Text(stringResource(R.string.detail_location, incident.locationAddress.ifBlank { "%.5f, %.5f".format(incident.latitude, incident.longitude) }))
+            Text(stringResource(R.string.detail_location, incident.locationAddress.ifBlank { String.format(java.util.Locale.ROOT, "%.5f, %.5f", incident.latitude, incident.longitude) }))
         } else {
             Text(stringResource(R.string.detail_anonymous_hidden), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
