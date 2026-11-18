@@ -91,6 +91,8 @@ object BusinessRules {
     const val ANONYMOUS_MAX_RADIUS_METERS = 10_000.0
     const val DUPLICATE_GROUP_RADIUS_METERS = 10.0
     const val OPERATOR_PROXIMITY_RADIUS_METERS = 20.0
+
+    //const val REOPEN_WINDOW_MS = 20L * 60 * 1000L//20 min....para efeito de teste
     const val REOPEN_WINDOW_MS = 5L * 24 * 60 * 60 * 1000L
     const val MAX_ATTACHMENTS = 3
 }

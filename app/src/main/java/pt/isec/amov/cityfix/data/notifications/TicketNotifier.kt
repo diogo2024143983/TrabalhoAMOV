@@ -164,7 +164,10 @@ class TicketNotifier(
 
     companion object {
         const val EXTRA_TICKET_ID = "ticketId"
-        private const val DAY_MS = 24L * 60 * 60 * 1000
+
+
+        private const val DAY_MS = 17L * 60 * 1000L //para testar----avisa quando faltar 17 min
+        //private const val DAY_MS = 24L * 60 * 60 * 1000
         private const val SUMMARY_ID = 9
     }
 }
