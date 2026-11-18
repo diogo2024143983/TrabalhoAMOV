@@ -1,111 +1,172 @@
 package pt.isec.amov.cityfix.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import pt.isec.amov.cityfix.R
 import androidx.compose.ui.unit.dp
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.CityFixUser
 import pt.isec.amov.cityfix.model.IncidentList
 import pt.isec.amov.cityfix.model.UserRole
+import pt.isec.amov.cityfix.ui.components.DashboardIncidentsMap
 import pt.isec.amov.cityfix.ui.theme.CityFixTheme
 
-/** Dashboard sem estado: tempo médio de reparação, total e % de ocorrências ativas (enunciado, I.1.A). */
 @Composable
 fun DashboardScreen(
     user: CityFixUser,
     incidents: IncidentList,
     onIncidents: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onIncidentClick: (String) -> Unit = {}
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    val isAnonymous = user.role == UserRole.ANONYMOUS
+    val visibleIncidents = incidents.visibleTo(user)
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = MaterialTheme.shapes.large
-            ) {
-                Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = if (user.role == UserRole.ANONYMOUS) stringResource(R.string.dash_improve_city) else stringResource(R.string.dash_hello, user.name),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Text(
-                        text = when {
-                            user.role == UserRole.ANONYMOUS -> stringResource(R.string.dash_anonymous_message)
-                            user.role == UserRole.CITIZEN && !user.active -> stringResource(R.string.account_pending_warning)
-                            else -> stringResource(R.string.dash_user_message)
-                        },
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
-                    )
-                }
-            }
-        }
-
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                StatCard(stringResource(R.string.dash_total_tickets), incidents.totalCount.toString(), MaterialTheme.colorScheme.primaryContainer, Modifier.weight(1f))
-                StatCard(
-                    stringResource(R.string.dash_active_percentage),
-                    "${incidents.activePercentage}% (${incidents.activeCount})",
-                    MaterialTheme.colorScheme.secondaryContainer,
-                    Modifier.weight(1f)
-                )
-                StatCard(
-                    stringResource(R.string.dash_avg_resolution_time),
-                    incidents.averageRepairDays.takeIf { it > 0.0 }?.let { stringResource(R.string.dash_days_format, it) } ?: "--",
-                    Color(0xFFF4E4C8),
-                    Modifier.weight(1f)
+        // Cabeçalho compacto (sem banner gigante)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = if (isAnonymous)
+                    stringResource(R.string.dash_improve_city)
+                else
+                    stringResource(R.string.dash_hello, user.name),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            if (user.role == UserRole.CITIZEN && !user.active) {
+                Text(
+                    text = stringResource(R.string.account_pending_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
         }
 
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = MaterialTheme.shapes.medium
+        // Barra única de estatísticas com divisores verticais
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.dash_community_title), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        stringResource(R.string.dash_community_message),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Button(onClick = onIncidents) { Text(stringResource(R.string.dash_explore)) }
-                }
+                StatColumn(
+                    value = incidents.totalCount.toString(),
+                    label = stringResource(R.string.dash_total_tickets),
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider(
+                    modifier = Modifier.fillMaxHeight().padding(vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                StatColumn(
+                    value = "${incidents.activePercentage}%",
+                    label = stringResource(R.string.dash_active_percentage),
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider(
+                    modifier = Modifier.fillMaxHeight().padding(vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                StatColumn(
+                    value = incidents.averageRepairDays.takeIf { it > 0.0 }?.let { days ->
+                        // Menos de um dia: mostrar em horas (evita "0,0 dias")
+                        if (days < 1.0) stringResource(R.string.dash_hours_format, days * 24) else stringResource(R.string.dash_days_format, days)
+                    } ?: "--",
+                    label = stringResource(R.string.dash_avg_resolution_time),
+                    modifier = Modifier.weight(1f)
+                )
             }
+        }
+
+        // Mapa em destaque a ocupar o restante espaço do ecrã
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            DashboardIncidentsMap(
+                incidents = visibleIncidents,
+                isAnonymous = isAnonymous,
+                onIncidentClick = onIncidentClick,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(10.dp))
+            )
+        }
+
+        // Botão limpo para abrir a lista completa (sem partir texto)
+        OutlinedButton(
+            onClick = onIncidents,
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.size(8.dp))
+            Text(stringResource(R.string.dash_explore))
         }
     }
 }
 
 @Composable
-private fun StatCard(label: String, value: String, color: Color, modifier: Modifier) {
-    Card(modifier, colors = CardDefaults.cardColors(containerColor = color), shape = MaterialTheme.shapes.medium) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(value, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+private fun StatColumn(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
     }
 }
 
@@ -113,6 +174,6 @@ private fun StatCard(label: String, value: String, color: Color, modifier: Modif
 @Composable
 private fun DashboardScreenPreview() {
     CityFixTheme {
-        DashboardScreen(user = CityFixUser(name = "Ana", role = UserRole.CITIZEN), incidents = IncidentList(), onIncidents = {})
+        DashboardScreen(user = CityFixUser(name = "Rodrigo", role = UserRole.CITIZEN), incidents = IncidentList(), onIncidents = {})
     }
 }

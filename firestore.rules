@@ -1,4 +1,5 @@
 rules_version = '2';
+// Regras do Cloud Firestore (P11: nunca usar regras abertas em produção).
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
@@ -12,7 +13,8 @@ service cloud.firestore {
     }
 
     // Perfis: o próprio gere o seu perfil; operadores leem e ativam munícipes.
-    // A leitura por qualquer autenticado é necessária para validar a unicidade do NIF.
+    // A leitura por utilizadores autenticados (incluindo sessão anónima) é necessária
+    // para validar a unicidade do NIF antes do registo.
     match /users/{userId} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == userId;
@@ -20,19 +22,21 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid == userId;
     }
 
-    // Tipologias de problemas: geridas apenas pelos operadores.
+    // Tipologias de problemas: visíveis para todos, geridas apenas pelos operadores.
     match /categories/{categoryId} {
       allow read: if true;
       allow write: if isOperator();
     }
 
-    // Tickets: um ticket encerrado fica bloqueado e não admite alterações.
+    // Tickets: leitura pública (o munícipe anónimo consulta as ocorrências públicas,
+    // a filtragem por visibilidade é feita na app); um ticket encerrado não admite alterações.
     match /tickets/{ticketId} {
-      allow read: if signedIn();
+      allow read: if true;
       allow create: if signedIn() && request.resource.data.authorId == request.auth.uid;
       allow update: if signedIn() && resource.data.status != 'CLOSED';
       allow delete: if isOperator();
 
+      // Mensagens: só para utilizadores autenticados; não podem ser editadas nem apagadas.
       match /messages/{messageId} {
         allow read: if signedIn();
         allow create: if signedIn()

@@ -25,7 +25,7 @@ import kotlin.math.sqrt
  */
 class ImpactDetector(
     private val onImpact: (magnitude: Float) -> Unit,
-    private val thresholdMs2: Float = 8f,
+    private val thresholdMs2: Float = 12f,
     private val cooldownMs: Long = 20_000L,
     private val clock: () -> Long = System::currentTimeMillis
 ) : SensorEventListener {
@@ -57,6 +57,8 @@ class ImpactDetector(
             (values[2] - gravity[2]) * gravity[2]) / gNorm
 
         val now = clock()
+        // A projeção em ĝ já isola a componente vertical, seja qual for a posição do telemóvel
+        // (deitado, no bolso ou num suporte do carro), por isso não é preciso exigir que esteja na horizontal.
         if (kotlin.math.abs(vertical) >= thresholdMs2 && (lastImpactAt?.let { now - it >= cooldownMs } ?: true)) {
             lastImpactAt = now
             onImpact(kotlin.math.abs(vertical))
@@ -95,6 +97,7 @@ fun ImpactDetectionEffect(enabled: Boolean, onImpact: (Float) -> Unit) {
                 else -> Unit
             }
         }
+        // addObserver entrega logo ON_CREATE/ON_START se o ecrã já estiver visível: não é preciso registar à parte
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             sensorManager.unregisterListener(detector)

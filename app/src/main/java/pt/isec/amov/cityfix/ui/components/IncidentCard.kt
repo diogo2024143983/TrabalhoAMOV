@@ -32,14 +32,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import coil3.compose.AsyncImage
 import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.Incident
 import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.ui.theme.CityFixTheme
+import androidx.compose.foundation.BorderStroke
+
 
 /** Cartão sem estado de uma ocorrência: recebe dados imutáveis e emite o clique para cima. */
 @Composable
@@ -53,8 +55,10 @@ fun IncidentCard(
             .fillMaxWidth()
             // Etiqueta da ação para o leitor de ecrã ("toque duas vezes para abrir detalhes")
             .clickable(onClickLabel = stringResource(R.string.cd_open_incident), role = Role.Button, onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -63,7 +67,9 @@ fun IncidentCard(
         ) {
             val thumb = incident.coverThumbnail
             Box(
-                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(12.dp))
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -75,15 +81,25 @@ fun IncidentCard(
                         contentScale = ContentScale.Crop
                     )
                     if (incident.media.firstOrNull()?.isVideo == true) {
-                        Icon(Icons.Default.PlayCircle, contentDescription = stringResource(R.string.cd_video), tint = Color.White)
+                        Icon(
+                            Icons.Default.PlayCircle,
+                            contentDescription = stringResource(R.string.cd_video),
+                            tint = Color.White
+                        )
                     }
                 } else if (incident.mediaPendingCount > 0) {
                     Icon(Icons.Default.CloudUpload, contentDescription = stringResource(R.string.cd_media_uploading))
                 }
             }
 
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         text = incident.title,
                         style = MaterialTheme.typography.titleMedium,
@@ -94,7 +110,11 @@ fun IncidentCard(
                     StatusChip(incident.status)
                 }
                 Text(
-                    text = "${incident.categoryName.ifBlank { stringResource(R.string.category_general) }}  •  ${incidentSituationLabel(incident.situation)}",
+                    text = "${incident.categoryName.ifBlank { stringResource(R.string.category_general) }}  •  ${
+                        incidentSituationLabel(
+                            incident.situation
+                        )
+                    }",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -105,7 +125,12 @@ fun IncidentCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.ThumbUp, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Default.ThumbUp,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                     Spacer(Modifier.size(4.dp))
                     Text(
                         text = pluralStringResource(R.plurals.supporters_count, incident.supporterIds.size, incident.supporterIds.size),
@@ -120,16 +145,23 @@ fun IncidentCard(
 
 @Composable
 fun StatusChip(status: IncidentStatus, modifier: Modifier = Modifier) {
+    val (bgColor, textColor) = when (status) {
+        IncidentStatus.OPEN -> Color(0xFF1E3A5F) to Color(0xFF93C5FD)
+        IncidentStatus.INFORMATION_REQUEST -> Color(0xFF45270A) to Color(0xFFFCD34D)
+        IncidentStatus.IN_RESOLUTION -> Color(0xFF312E81) to Color(0xFFC4B5FD)
+        IncidentStatus.RESOLVED -> Color(0xFF14532D) to Color(0xFF86EFAC)
+        IncidentStatus.CLOSED -> Color(0xFF334155) to Color(0xFFCBD5E1)
+    }
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(50),
+        color = bgColor,
+        contentColor = textColor,
+        shape = RoundedCornerShape(6.dp),
     ) {
         Text(
             text = incidentStatusLabel(status),
             style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
 }

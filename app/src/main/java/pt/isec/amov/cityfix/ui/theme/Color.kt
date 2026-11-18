@@ -2,28 +2,18 @@ package pt.isec.amov.cityfix.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light Scheme Colors
-val MunicipalBlue = Color(0xFF315A93)
-val MunicipalBlueLight = Color(0xFF7E9FCB)
-val MunicipalBlueDark = Color(0xFF1F385C)
+// Black & Gold Elegance (Coolors)
+val PureBlack = Color(0xFF000000)
+val DeepNavy = Color(0xFF14213D)
+val DeepNavyLight = Color(0xFF1E2F54)
+val NavyOutline = Color(0xFF2B3F6B)
 
-val AmberWarning = Color(0xFFF57C00)
-val GreenResolved = Color(0xFF2E7D32)
-val RedUrgent = Color(0xFFC62828)
-val TealAccent = Color(0xFF2C8C83)
+val RegalGold = Color(0xFFFCA311)
+val GoldContainer = Color(0xFF3A2500)
+val GoldOnContainer = Color(0xFFFFDFA6)
 
-val BackgroundLight = Color(0xFFE9EEF5)
-val SurfaceLight = Color(0xFFF9FBFD)
-val TextPrimaryLight = Color(0xFF212121)
-val TextSecondaryLight = Color(0xFF757575)
+val Platinum = Color(0xFFE5E5E5)
+val PureWhite = Color(0xFFFFFFFF)
+val MutedSilver = Color(0xFFB0B8C9)
 
-// Dark Scheme Colors
-val MunicipalBlueDarkMode = Color(0xFF90CAF9)
-val AmberWarningDarkMode = Color(0xFFFFB74D)
-val GreenResolvedDarkMode = Color(0xFF81C784)
-val RedUrgentDarkMode = Color(0xFFE57373)
-
-val BackgroundDark = Color(0xFF151B24)
-val SurfaceDark = Color(0xFF1E1E1E)
-val TextPrimaryDark = Color(0xFFEEEEEE)
-val TextSecondaryDark = Color(0xFFB0B0B0)
+val RedUrgent = Color(0xFFF87171)
