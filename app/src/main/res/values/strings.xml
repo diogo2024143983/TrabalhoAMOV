@@ -4,7 +4,7 @@
     <!-- Navigation / Screen Titles -->
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_public_incidents">Public Incidents</string>
-    <string name="nav_my_tickets">My Tickets</string>
+    <string name="nav_my_tickets">My Incidents</string>
     <string name="nav_new_incident">Report Incident</string>
     <string name="nav_operator_panel">Management</string>
     <string name="nav_validate_citizens">Validate Citizens</string>
@@ -18,7 +18,7 @@
     <string name="role_anonymous">Anonymous Citizen</string>
     <string name="role_citizen">Citizen</string>
     <string name="role_operator">Municipal Operator</string>
-    <string name="status_pending_validation">Pending NIF Validation</string>
+    <string name="status_pending_validation">Pending validation by an operator</string>
     <string name="status_active">Active</string>
 
     <!-- Incident Statuses -->
@@ -35,49 +35,136 @@
     <string name="situation_theft">Theft</string>
 
     <!-- Incident Scope -->
-    <string name="scope_public">Public</string>
-    <string name="scope_private">Private (Municipal Services Only)</string>
+    <string name="scope_public">Public incident</string>
+    <string name="scope_private">Private incident (municipal services only)</string>
 
-    <!-- Dashboard Statistics -->
+    <!-- Dashboard -->
     <string name="dash_avg_resolution_time">Avg. Repair Time</string>
-    <string name="dash_total_tickets">Total Incidents</string>
-    <string name="dash_active_percentage">% Active</string>
+    <string name="dash_total_tickets">Total</string>
+    <string name="dash_active_percentage">Active (%)</string>
     <string name="dash_hours_format">%.1f h</string>
     <string name="dash_days_format">%.1f days</string>
+    <string name="dash_improve_city">Improve your city</string>
+    <string name="dash_hello">Hello, %1$s!</string>
+    <string name="dash_anonymous_message">Check the resolution status of incidents in your city.</string>
+    <string name="dash_user_message">Report public incidents or follow the progress of the ones you reported.</string>
+    <string name="dash_community_title">Community Incidents</string>
+    <string name="dash_community_message">See the active problems and follow their resolution in real time.</string>
+    <string name="dash_explore">Explore incidents</string>
+
+    <!-- Incident list -->
+    <string name="list_title">Reported Incidents</string>
+    <string name="list_subtitle">Problems reported by the community</string>
+    <string name="list_filter_public">Active Public</string>
+    <string name="list_empty">There are no incidents in this view yet.</string>
+    <plurals name="supporters_count">
+        <item quantity="one">%d supporter</item>
+        <item quantity="other">%d supporters</item>
+    </plurals>
+    <string name="category_general">General</string>
 
     <!-- Geofencing & Location -->
-    <string name="geofence_out_of_bounds_title">Outside Operating Area</string>
-    <string name="geofence_out_of_bounds_message">You are currently outside the 10 km operating perimeter of Praça da República in Coimbra. Public operations are limited.</string>
+    <string name="geofence_out_of_bounds_title">Outside the 10 km Area</string>
+    <string name="geofence_out_of_bounds_message">Anonymous access is limited to a 10 km radius around Praça da República (Coimbra). Sign in to see incidents outside this area.</string>
     <string name="geofence_operator_distance_required">You must be within 20 meters of the incident to start resolution.</string>
     <string name="geofence_operator_near_alert">Proximity Alert: You are within 20m of an active incident!</string>
     <string name="duplicate_warning_title">Possible Duplicate Incident</string>
     <string name="duplicate_warning_message">An incident has already been reported within 10 meters of this location. Would you like to upvote the existing ticket?</string>
     <string name="btn_upvote_existing">Support Existing</string>
     <string name="btn_proceed_anyway">Submit Anyway</string>
+    <string name="bg_location_title">Background location</string>
+    <string name="bg_location_message">To let citizens know when you are within 20 m of an incident, even with the app closed, CityFix needs the “Allow all the time” option.</string>
 
     <!-- Impact Detection -->
-    <string name="impact_alert_title">Road Impact Detected!</string>
+    <string name="impact_alert_title">Road Impact Detected</string>
     <string name="impact_alert_message">A sudden vertical shock was recorded. Would you like to report a road hazard at your current location?</string>
-    <string name="btn_report_hazard">Report Road Hazard</string>
-    <string name="btn_dismiss">Dismiss</string>
+    <string name="impact_alert_message_value">We detected a strong bump on the road (%1$.1f m/s²). Would you like to report a pothole or hazard at this location?</string>
+    <string name="btn_report_hazard">Report</string>
+    <string name="btn_dismiss">Ignore</string>
+    <string name="impact_prefill_title">Possible pothole or uneven road</string>
+    <string name="impact_prefill_description">Impact automatically detected by the accelerometer (intensity %1$.1f m/s²). Please confirm and add details.</string>
 
-    <!-- Forms & Actions -->
-    <string name="title_label">Title</string>
-    <string name="description_label">Description</string>
+    <!-- Report incident form -->
+    <string name="report_title">Report Incident</string>
+    <string name="title_label">Incident title</string>
+    <string name="description_label">Detailed description</string>
     <string name="category_label">Category</string>
-    <string name="situation_label">Situation</string>
-    <string name="location_label">Location</string>
-    <string name="take_photo">Take Photo</string>
-    <string name="choose_gallery">Choose Media</string>
-    <string name="submit_incident">Submit Report</string>
+    <string name="situation_label">Problem situation:</string>
+    <string name="location_label">Address / Location</string>
+    <string name="take_photo">Camera</string>
+    <string name="choose_gallery">Gallery</string>
+    <string name="submit_incident">Submit</string>
+    <string name="report_use_gps">Use GPS</string>
+    <string name="report_attachments">Photos / videos * (%1$d/%2$d)</string>
+    <string name="report_tap_map">Tap the map to set the location</string>
+    <string name="report_gps_ok">GPS location obtained.</string>
+    <string name="report_gps_unavailable">GPS unavailable. Tap the map to choose the location.</string>
+    <string name="report_gps_no_permission">No location permission. Tap the map to choose the location.</string>
+    <string name="report_address_found">Address found on the map!</string>
+    <string name="report_address_not_found">Address not found. Try adjusting it or tap the map.</string>
+    <string name="report_map_picked">Location chosen on the map.</string>
+    <string name="report_duplicate_supported">A matching incident already existed within 10 m. You were added as a supporter.</string>
+    <string name="report_submitted">Incident reported! Media will be uploaded in the background.</string>
     <string name="resolution_proof_required">A photo or video proving the resolution is mandatory.</string>
     <string name="btn_reopen_ticket">Reopen Ticket</string>
     <string name="reopen_window_notice">You can reopen this ticket within 5 days of resolution if the issue persists.</string>
     <string name="ticket_closed_notice">This ticket is closed and can no longer be modified.</string>
 
+    <!-- Incident detail -->
+    <string name="detail_not_found">Incident not found.</string>
+    <string name="detail_reopen_title">Reopen Incident (5-day window)</string>
+    <string name="detail_reopen_reason">Reason for reopening *</string>
+    <string name="detail_reopen_confirm">Confirm Reopening</string>
+    <string name="detail_reopen_button">Reopen Incident (up to 5 days after resolution)</string>
+    <string name="detail_info_title_operator">Request information from the citizen</string>
+    <string name="detail_info_title_citizen">Request clarification from the municipality</string>
+    <string name="detail_info_label_operator">What information is needed? *</string>
+    <string name="detail_info_label_citizen">E.g.: time estimate, procedure *</string>
+    <string name="detail_info_send">Send request</string>
+    <string name="detail_info_by_operator">The municipality requested additional information.</string>
+    <string name="detail_info_by_citizen">The citizen requested clarification.</string>
+    <string name="detail_info_reply_below">Reply in the messages below.</string>
+    <string name="detail_info_waiting">Waiting for a reply.</string>
+    <string name="detail_resolution_proof">Resolution Proof</string>
+    <plurals name="detail_support">
+        <item quantity="one">Support Incident (%d supporter)</item>
+        <item quantity="other">Support Incident (%d supporters)</item>
+    </plurals>
+    <string name="detail_history">History</string>
+    <string name="detail_closed_no_messages">Closed ticket: no new messages allowed.</string>
+    <string name="detail_category">Category: %1$s</string>
+    <string name="detail_situation">Situation: %1$s</string>
+    <string name="detail_status">Status: %1$s</string>
+    <string name="detail_author">Author: %1$s</string>
+    <string name="detail_author_contact">Author contact: %1$s</string>
+    <string name="detail_location">Location: %1$s</string>
+    <string name="detail_anonymous_hidden">Author and address hidden (anonymous profile)</string>
+    <string name="detail_reopen_reason_value">Reopening reason: %1$s</string>
+    <string name="detail_auto_close">Automatic closing in %1$s</string>
+    <string name="detail_navigate">Navigate to location</string>
+    <string name="detail_operator_title">Operational Management</string>
+    <string name="detail_request_info">Request Info</string>
+    <string name="detail_start_resolution">Start Resolution</string>
+    <string name="detail_work_started">Work started at %1$s</string>
+    <string name="detail_register_work">Register work start</string>
+    <string name="detail_proof_selected">Proof selected ✓ (change)</string>
+    <string name="detail_attach_proof">Attach photo/video of the completed work *</string>
+    <string name="detail_mark_resolved">Mark as Resolved</string>
+    <string name="detail_waiting_reopen">Waiting for the reopening period. The ticket closes automatically after 5 days.</string>
+    <string name="detail_closed_final">This incident is permanently closed.</string>
+    <string name="time_days_hours">%1$d day(s) and %2$d h</string>
+    <string name="time_hours">%1$d h</string>
+
+    <!-- History notes (stored in the ticket) -->
+    <string name="history_submitted">Incident submitted</string>
+    <string name="history_clarified">Clarification provided</string>
+    <string name="history_resolved_photo">Resolved with photo proof</string>
+    <string name="history_resolved_video">Resolved with video proof</string>
+    <string name="history_reopened">Reopened: %1$s</string>
+
     <!-- Messages & Communication -->
-    <string name="messages_section_title">Municipality Communication</string>
-    <string name="send_message_placeholder">Type a message...</string>
+    <string name="messages_section_title">Communication with Municipal Services</string>
+    <string name="send_message_placeholder">Type a message…</string>
     <string name="btn_send">Send</string>
 
     <!-- Auth -->
@@ -87,11 +174,150 @@
     <string name="phone_label">Phone Number</string>
     <string name="nif_label">Tax Number (NIF)</string>
     <string name="address_label">Address / Georeference</string>
-    <string name="impact_sensor_toggle">Enable Automatic Road Impact Detection</string>
+    <string name="impact_sensor_toggle">Enable Automatic Impact Detection</string>
     <string name="btn_login">Sign In</string>
     <string name="btn_register">Create Account</string>
     <string name="btn_logout">Sign Out</string>
     <string name="btn_continue_as_guest">Continue as Anonymous Citizen</string>
-    <string name="forgot_password">Forgot Password?</string>
-    <string name="account_pending_warning">Your account is pending municipal validation. You can browse public incidents, but incident creation is temporarily on hold.</string>
+    <string name="forgot_password">Forgot my password</string>
+    <string name="account_pending_warning">Your account is waiting for NIF validation by a municipal operator.</string>
+    <string name="auth_new_account">Create New Account</string>
+    <string name="auth_choose_account_type">First choose the type of account you want to create:</string>
+    <string name="auth_citizen_account">Citizen Account</string>
+    <string name="auth_citizen_account_desc">For residents to report and follow incidents in the municipality.</string>
+    <string name="auth_operator_account_desc">For municipal staff (requires an institutional @cm-coimbra.pt email).</string>
+    <string name="auth_have_account">Already have an account? Sign in</string>
+    <string name="auth_no_account">No account? Create a new one</string>
+    <string name="auth_register_citizen">Citizen Registration</string>
+    <string name="auth_register_operator">Municipal Operator Registration</string>
+    <string name="auth_change_account_type">← Change account type</string>
+    <string name="auth_login_hint">Enter your email and password.</string>
+    <string name="auth_change_photo">Change Photo</string>
+    <string name="auth_add_photo">Add Photo (Optional)</string>
+    <string name="auth_nif_unique">NIF (unique) *</string>
+    <string name="auth_municipal_email">Municipal email (@cm-coimbra.pt) *</string>
+    <string name="auth_password_min">Password (min. 6 characters) *</string>
+    <string name="auth_enter">Sign In</string>
+    <string name="reset_email_sent">We sent an email to %1$s with instructions to reset your password.</string>
+
+    <!-- MFA -->
+    <string name="mfa_title">Security Confirmation</string>
+    <string name="mfa_message">We sent a 6-digit code by notification to your phone. Enter it below to complete the sign in.</string>
+    <string name="mfa_code_label">6-digit code</string>
+    <string name="mfa_confirm">Confirm and Sign In</string>
+    <string name="mfa_code_sent">Notification sent with the code</string>
+
+    <!-- Profile -->
+    <string name="profile_title">User Profile</string>
+    <string name="profile_anonymous_title">You are browsing as an Anonymous Citizen.</string>
+    <string name="profile_anonymous_message">Sign in or create an account to report and follow incidents.</string>
+    <string name="profile_not_given">Not provided</string>
+    <string name="profile_name">Name: %1$s</string>
+    <string name="profile_email">Email: %1$s</string>
+    <string name="profile_phone">Phone: %1$s</string>
+    <string name="profile_nif">NIF: %1$s</string>
+    <string name="profile_address">Address: %1$s</string>
+    <string name="profile_impact">Impact detection: %1$s</string>
+    <string name="profile_enabled">On</string>
+    <string name="profile_disabled">Off</string>
+    <string name="profile_role">Role: %1$s</string>
+    <string name="profile_state">Status: %1$s</string>
+    <string name="profile_edit">Edit Profile</string>
+    <string name="profile_edit_locked">Name, NIF and address cannot be changed.</string>
+    <string name="profile_updated">Profile updated successfully!</string>
+
+    <!-- Operator panel -->
+    <string name="op_title">Operational Management Panel</string>
+    <string name="op_pending_citizens">Citizens Pending Validation (%1$d)</string>
+    <string name="op_no_pending">No citizens pending validation.</string>
+    <string name="op_nif_phone">NIF: %1$s  •  Phone: %2$s</string>
+    <string name="op_activate">Activate Account</string>
+    <string name="op_keep_pending">Keep Pending</string>
+    <string name="op_categories">Problem Categories</string>
+    <string name="op_new_category">New category</string>
+    <string name="op_edit_category">Edit category</string>
+    <string name="op_category_name">Name</string>
+    <string name="op_active_incidents">Active Incidents (%1$d)</string>
+
+    <!-- Generic buttons -->
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_save_changes">Save Changes</string>
+    <string name="btn_add">Add</string>
+    <string name="btn_back">Back</string>
+    <string name="btn_continue">Continue</string>
+    <string name="btn_not_now">Not now</string>
+
+    <!-- Validation and errors -->
+    <string name="err_name_required">Name is required</string>
+    <string name="err_phone_invalid">Invalid phone number (9 digits)</string>
+    <string name="err_nif_invalid">Invalid NIF</string>
+    <string name="err_nif_taken">This NIF is already associated with another account.</string>
+    <string name="err_address_required">Address is required</string>
+    <string name="err_password_short">At least 6 characters</string>
+    <string name="err_email_invalid">Invalid email</string>
+    <string name="err_email_municipal">Operator email must belong to the municipality (e.g. @cm-coimbra.pt)</string>
+    <string name="err_login_failed">Incorrect email or password.</string>
+    <string name="err_register_failed">Error creating the account.</string>
+    <string name="err_mfa_wrong">Incorrect verification code.</string>
+    <string name="err_reset_email_needed">Enter your account email to recover the password</string>
+    <string name="err_reset_failed">Could not send the recovery email.</string>
+    <string name="err_title_required">Title is required</string>
+    <string name="err_description_required">Description is required</string>
+    <string name="err_category_required">Choose a category</string>
+    <string name="err_location_required">Location is required</string>
+    <string name="err_attachment_required">Attach at least one photo or video</string>
+    <string name="err_media_processing">Could not process the files.</string>
+    <string name="err_support_failed">Error supporting the incident.</string>
+    <string name="err_resolve_state">Only incidents in resolution can be resolved.</string>
+    <string name="err_proof_processing">Could not process the resolution proof.</string>
+    <string name="err_reopen_expired">The 5-day period has expired. The incident is closed.</string>
+    <string name="err_reopen_reason">You must give a reason for reopening.</string>
+
+    <!-- Notifications -->
+    <string name="channel_updates">CityFix updates</string>
+    <string name="channel_updates_desc">Updates about reported incidents</string>
+    <string name="channel_proximity">Proximity service</string>
+    <string name="proximity_service_title">CityFix – Operator on duty</string>
+    <string name="proximity_service_text">Detecting active incidents within 20 m.</string>
+    <string name="notif_generic_update">There is an update on an incident.</string>
+    <string name="notif_new_incident">New incident</string>
+    <string name="notif_reopened">The incident was reopened.</string>
+    <string name="notif_open_again">The incident is open again.</string>
+    <string name="notif_info_request">Clarification was requested. Reply in the ticket messages.</string>
+    <string name="notif_in_resolution">The municipal team has started the resolution.</string>
+    <string name="notif_resolved">The problem was resolved. You can reopen it within 5 days.</string>
+    <string name="notif_closed">The ticket was closed and archived.</string>
+    <string name="notif_new_message">New message: %1$s</string>
+    <string name="notif_team_nearby_title">The municipal team is in the area</string>
+    <string name="notif_team_nearby_text">%1$s is next to “%2$s”.</string>
+    <string name="notif_an_operator">An operator</string>
+    <string name="notif_operator_near_title">Active incident nearby</string>
+    <string name="notif_operator_near_text">You are %1$.0f m from “%2$s”. The authors have been notified.</string>
+    <string name="notif_mfa_title">CityFix Security Code</string>
+    <string name="notif_mfa_text">Your confirmation code is %1$s. Enter it in the app to sign in.</string>
+    <string name="notif_last_day_title">Last day to reopen</string>
+    <string name="notif_last_day_text">“%1$s” will be permanently closed within 24 hours.</string>
+
+    <!-- Accessibility (content descriptions) -->
+    <string name="cd_menu">Menu</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_category_active">Category %1$s active</string>
+    <string name="cd_open_incident">open details</string>
+    <string name="cd_profile_photo">Profile photo</string>
+    <string name="cd_selected_photo">Selected photo</string>
+    <string name="cd_no_photo">No photo</string>
+    <string name="cd_search_address">Search address on the map</string>
+    <string name="cd_thumbnail_of">Thumbnail of %1$s</string>
+    <string name="cd_video">Video</string>
+    <string name="cd_media_uploading">Media being uploaded</string>
+    <string name="cd_fullscreen_photo">Full screen photo</string>
+    <string name="cd_close">Close</string>
+    <string name="cd_incident_photo">Incident photo</string>
+    <string name="cd_incident_video">Incident video</string>
+    <string name="cd_play_video">Play video</string>
+    <string name="cd_selected_attachment">Selected attachment</string>
+    <string name="cd_remove_attachment">Remove attachment</string>
+    <string name="cd_edit_category">Edit %1$s</string>
+    <string name="media_uploading">Media being uploaded (it will appear when there is network)…</string>
 </resources>

@@ -14,6 +14,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.IncidentCategory
 
 /**
@@ -36,7 +38,7 @@ fun CategoryDropdown(
             value = selected?.name.orEmpty(),
             onValueChange = {},
             readOnly = true,
-            label = { Text("Categoria *") },
+            label = { Text(stringResource(R.string.category_label) + " *") },
             isError = error != null,
             supportingText = error?.let { { Text(it) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },

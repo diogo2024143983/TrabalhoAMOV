@@ -16,7 +16,7 @@ class CityFixMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         android.util.Log.i("CityFixFCM", "Mensagem recebida de ${message.from}: ${message.notification?.title}")
         val title = message.notification?.title ?: message.data["title"] ?: "CityFix"
-        val body = message.notification?.body ?: message.data["body"] ?: "Há uma atualização numa ocorrência."
+        val body = message.notification?.body ?: message.data["body"] ?: getString(pt.isec.amov.cityfix.R.string.notif_generic_update)
         // Dado opcional "ticketId" (enviado na consola em "Opções adicionais → Dados personalizados"):
         // ao tocar na notificação abre o ticket. Com a app em segundo plano o sistema entrega os
         // mesmos dados como extras do Intent, lidos pela MainActivity com a mesma chave.
@@ -39,6 +39,11 @@ class CityFixMessagingService : FirebaseMessagingService() {
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()
+        // Android 13+: sem a permissão POST_NOTIFICATIONS a notificação não pode ser mostrada
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) return
         NotificationManagerCompat.from(this).notify(message.messageId?.hashCode() ?: body.hashCode(), notification)
     }
 
@@ -49,15 +54,15 @@ class CityFixMessagingService : FirebaseMessagingService() {
     companion object {
         const val CHANNEL_ID = "cityfix_updates"
 
-        fun createChannel(manager: NotificationManager) {
+        fun createChannel(manager: NotificationManager, context: android.content.Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 manager.createNotificationChannel(
                     NotificationChannel(
                         CHANNEL_ID,
-                        "CityFix updates",
+                        context.getString(pt.isec.amov.cityfix.R.string.channel_updates),
                         NotificationManager.IMPORTANCE_DEFAULT
                     ).apply {
-                        description = "Updates about reported incidents"
+                        description = context.getString(pt.isec.amov.cityfix.R.string.channel_updates_desc)
                     }
                 )
             }

@@ -12,8 +12,11 @@ import pt.isec.amov.cityfix.data.MediaRepository
 import pt.isec.amov.cityfix.data.cloud.CityFixFirebaseRepository
 import pt.isec.amov.cityfix.model.CityFixUser
 import pt.isec.amov.cityfix.model.UserRole
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.utils.CityFixUtils
+import pt.isec.amov.cityfix.utils.Strings
 import pt.isec.amov.cityfix.data.notifications.TicketNotifier
+import pt.isec.amov.cityfix.data.local.CityFixLocalRepository
 
 /** Estado imutável do formulário de login/registo, com validação por campo (padrão UiState de P08). */
 data class AuthFormUiState(
@@ -56,7 +59,9 @@ class AuthFormViewModel(
     private val cloudRepository: CityFixFirebaseRepository,
     private val mediaRepository: MediaRepository,
     startInRegisterMode: Boolean,
-    private val ticketNotifier: TicketNotifier? = null
+    private val ticketNotifier: TicketNotifier? = null,
+    private val localRepository: CityFixLocalRepository? = null,
+    private val strings: Strings = Strings { id, _ -> id.toString() }
 ) : ViewModel() {
     private val _formState = MutableStateFlow(AuthFormUiState(isRegisterMode = startInRegisterMode))
     val formState: StateFlow<AuthFormUiState> = _formState.asStateFlow()
@@ -71,19 +76,19 @@ class AuthFormViewModel(
     }
 
     fun onNameChanged(value: String) = _formState.update {
-        it.copy(name = value, nameError = if (value.isBlank()) "O nome é obrigatório" else null)
+        it.copy(name = value, nameError = if (value.isBlank()) strings.get(R.string.err_name_required) else null)
     }
 
     fun onPhoneChanged(value: String) = _formState.update {
-        it.copy(phone = value, phoneError = if (CityFixUtils.isValidPhone(value)) null else "Telefone inválido (9 dígitos)")
+        it.copy(phone = value, phoneError = if (CityFixUtils.isValidPhone(value)) null else strings.get(R.string.err_phone_invalid))
     }
 
     fun onNifChanged(value: String) = _formState.update {
-        it.copy(nif = value, nifError = if (CityFixUtils.isValidPortugueseNif(value)) null else "NIF inválido")
+        it.copy(nif = value, nifError = if (CityFixUtils.isValidPortugueseNif(value)) null else strings.get(R.string.err_nif_invalid))
     }
 
     fun onGeoreferenceChanged(value: String) = _formState.update {
-        it.copy(georeference = value, georeferenceError = if (value.isBlank()) "A morada é obrigatória" else null)
+        it.copy(georeference = value, georeferenceError = if (value.isBlank()) strings.get(R.string.err_address_required) else null)
     }
 
     fun onImpactDetectionChanged(enabled: Boolean) = _formState.update { it.copy(impactDetectionEnabled = enabled) }
@@ -95,13 +100,13 @@ class AuthFormViewModel(
     }
 
     fun onPasswordChanged(value: String) = _formState.update {
-        it.copy(password = value, passwordError = if (value.length >= 6) null else "Mínimo de 6 carateres")
+        it.copy(password = value, passwordError = if (value.length >= 6) null else strings.get(R.string.err_password_short))
     }
 
     private fun emailErrorFor(email: String, role: UserRole?, register: Boolean): String? = when {
-        !CityFixUtils.isValidEmail(email) -> "Email inválido"
+        !CityFixUtils.isValidEmail(email) -> strings.get(R.string.err_email_invalid)
         register && role == UserRole.OPERATOR && !CityFixUtils.isValidMunicipalEmail(email) ->
-            "O email de operador deve pertencer ao município (ex: @cm-coimbra.pt)"
+            strings.get(R.string.err_email_municipal)
         else -> null
     }
 
@@ -116,6 +121,7 @@ class AuthFormViewModel(
                 val code = (100000..999999).random().toString()
                 expectedMfaCode = code
                 pendingUid = uid
+                viewModelScope.launch { localRepository?.setMfaPending(true) }
                 ticketNotifier?.notifyMfaCode(code)
                 _formState.update {
                     it.copy(
@@ -124,12 +130,12 @@ class AuthFormViewModel(
                         mfaCode = "",
                         mfaError = null,
                         messageIsError = false,
-                        message = "Notificação enviada com o codigo"
+                        message = strings.get(R.string.mfa_code_sent)
                     )
                 }
             },
             onError = { e ->
-                _formState.update { it.copy(isLoading = false, message = e.localizedMessage ?: "Email ou palavra-passe incorretos.") }
+                _formState.update { it.copy(isLoading = false, message = e.localizedMessage ?: strings.get(R.string.err_login_failed)) }
             }
         )
     }
@@ -143,10 +149,11 @@ class AuthFormViewModel(
         if (_formState.value.mfaCode == expectedMfaCode) {
             expectedMfaCode = null
             pendingUid = null
+            viewModelScope.launch { localRepository?.setMfaPending(false) }
             _formState.update { it.copy(mfaStep = false, message = null) }
             onSuccess(uid)
         } else {
-            _formState.update { it.copy(mfaError = "Código de verificação incorreto.") }
+            _formState.update { it.copy(mfaError = strings.get(R.string.err_mfa_wrong)) }
         }
     }
 
@@ -154,6 +161,7 @@ class AuthFormViewModel(
         expectedMfaCode = null
         pendingUid = null
         cloudRepository.logout()
+        viewModelScope.launch { localRepository?.setMfaPending(false) }
         _formState.update { it.copy(mfaStep = false, mfaCode = "", mfaError = null, message = null) }
     }
 
@@ -161,17 +169,17 @@ class AuthFormViewModel(
     fun resetPassword() {
         val email = _formState.value.email.trim()
         if (!CityFixUtils.isValidEmail(email)) {
-            _formState.update { it.copy(emailError = "Indique o email da conta para recuperar a palavra-passe") }
+            _formState.update { it.copy(emailError = strings.get(R.string.err_reset_email_needed)) }
             return
         }
         _formState.update { it.copy(isLoading = true, message = null) }
         cloudRepository.sendPasswordReset(
             email = email,
             onSuccess = {
-                _formState.update { it.copy(isLoading = false, messageIsError = false, message = "Enviámos um email para $email com instruções para redefinir a palavra-passe.") }
+                _formState.update { it.copy(isLoading = false, messageIsError = false, message = strings.get(R.string.reset_email_sent, email)) }
             },
             onError = { e ->
-                _formState.update { it.copy(isLoading = false, messageIsError = true, message = e.localizedMessage ?: "Não foi possível enviar o email de recuperação.") }
+                _formState.update { it.copy(isLoading = false, messageIsError = true, message = e.localizedMessage ?: strings.get(R.string.err_reset_failed)) }
             }
         )
     }
@@ -188,7 +196,7 @@ class AuthFormViewModel(
 
             cloudRepository.isNifAlreadyRegistered(form.nif.trim()) { exists ->
                 if (exists) {
-                    _formState.update { it.copy(isLoading = false, nifError = "Este NIF já se encontra associado a outra conta.") }
+                    _formState.update { it.copy(isLoading = false, nifError = strings.get(R.string.err_nif_taken)) }
                     return@isNifAlreadyRegistered
                 }
                 val newUser = CityFixUser(
@@ -215,7 +223,7 @@ class AuthFormViewModel(
                         }
                     },
                     onError = { e ->
-                        _formState.update { it.copy(isLoading = false, message = e.localizedMessage ?: "Erro ao criar conta.") }
+                        _formState.update { it.copy(isLoading = false, message = e.localizedMessage ?: strings.get(R.string.err_register_failed)) }
                     }
                 )
             }

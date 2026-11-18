@@ -6,7 +6,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,9 +36,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import coil3.compose.AsyncImage
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.CityFixUser
 import pt.isec.amov.cityfix.model.UserRole
+import pt.isec.amov.cityfix.ui.components.LabeledSwitch
 import pt.isec.amov.cityfix.ui.components.roleLabel
 import pt.isec.amov.cityfix.ui.theme.CityFixTheme
 import pt.isec.amov.cityfix.viewmodel.EditProfileUiState
@@ -59,33 +60,34 @@ fun ProfileScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Perfil do Utilizador", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth())
+        Text(stringResource(R.string.profile_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth())
         ProfileAvatar(user.photoUrl)
 
         if (user.role == UserRole.ANONYMOUS) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Estás a navegar como Cidadão Anónimo.", fontWeight = FontWeight.SemiBold)
-                    Text("Inicia sessão ou cria uma nova conta para reportar e acompanhar ocorrências.")
+                    Text(stringResource(R.string.profile_anonymous_title), fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.profile_anonymous_message))
                 }
             }
-            Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text("Iniciar Sessão") }
-            OutlinedButton(onClick = onRegister, modifier = Modifier.fillMaxWidth()) { Text("Criar Nova Conta") }
+            Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.btn_login)) }
+            OutlinedButton(onClick = onRegister, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.auth_new_account)) }
         } else {
             Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Nome: ${user.name}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    val notGiven = stringResource(R.string.profile_not_given)
+                    Text(stringResource(R.string.profile_name, user.name), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     HorizontalDivider()
-                    Text("Email: ${user.email}")
-                    Text("Telefone: ${user.phone.ifBlank { "Não indicado" }}")
-                    Text("NIF: ${user.nif}")
+                    Text(stringResource(R.string.profile_email, user.email))
+                    Text(stringResource(R.string.profile_phone, user.phone.ifBlank { notGiven }))
+                    Text(stringResource(R.string.profile_nif, user.nif))
                     if (user.role == UserRole.CITIZEN) {
-                        Text("Morada: ${user.georeference.ifBlank { "Não indicada" }}")
-                        Text("Deteção de Impactos: ${if (user.impactDetectionEnabled) "Ativa" else "Desativada"}")
+                        Text(stringResource(R.string.profile_address, user.georeference.ifBlank { notGiven }))
+                        Text(stringResource(R.string.profile_impact, stringResource(if (user.impactDetectionEnabled) R.string.profile_enabled else R.string.profile_disabled)))
                     }
-                    Text("Função: ${roleLabel(user.role)}")
+                    Text(stringResource(R.string.profile_role, roleLabel(user.role)))
                     Text(
-                        text = "Estado: ${if (user.active) "Ativo" else "Pendente de Validação por Operador"}",
+                        text = stringResource(R.string.profile_state, stringResource(if (user.active) R.string.status_active else R.string.status_pending_validation)),
                         color = if (user.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -94,7 +96,7 @@ fun ProfileScreen(
             Button(onClick = onEditProfile, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Settings, contentDescription = null)
                 Spacer(Modifier.size(8.dp))
-                Text("Editar Perfil")
+                Text(stringResource(R.string.profile_edit))
             }
         }
     }
@@ -119,36 +121,36 @@ fun EditProfileScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Editar Perfil", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth())
+        Text(stringResource(R.string.profile_edit), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth())
         Text(
-            "Nome, NIF e morada não podem ser alterados.",
+            stringResource(R.string.profile_edit_locked),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth()
         )
         ProfileAvatar(state.newPhotoUri ?: state.currentPhotoUrl)
         OutlinedButton(onClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
-            Text("Trocar Fotografia")
+            Text(stringResource(R.string.auth_change_photo))
         }
         OutlinedTextField(
             value = state.phone,
             onValueChange = onPhoneChange,
-            label = { Text("Número de Telefone") },
+            label = { Text(stringResource(R.string.phone_label)) },
             isError = state.phoneError != null,
             supportingText = state.phoneError?.let { { Text(it) } },
             modifier = Modifier.fillMaxWidth()
         )
         if (isCitizen) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = state.impactDetectionEnabled, onCheckedChange = onImpactDetectionChange)
-                Spacer(Modifier.size(8.dp))
-                Text("Deteção Automática de Impactos")
-            }
+            LabeledSwitch(
+                text = stringResource(R.string.impact_sensor_toggle),
+                checked = state.impactDetectionEnabled,
+                onCheckedChange = onImpactDetectionChange
+            )
         }
         if (state.isSaving) {
             CircularProgressIndicator()
         } else {
-            Button(onClick = onSave, enabled = state.isValid, modifier = Modifier.fillMaxWidth()) { Text("Guardar Alterações") }
+            Button(onClick = onSave, enabled = state.isValid, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.btn_save_changes)) }
         }
     }
 }
@@ -157,9 +159,9 @@ fun EditProfileScreen(
 private fun ProfileAvatar(photo: String?) {
     Surface(modifier = Modifier.size(110.dp).clip(CircleShape), color = MaterialTheme.colorScheme.primaryContainer) {
         if (!photo.isNullOrBlank()) {
-            AsyncImage(model = photo, contentDescription = "Foto de perfil", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            AsyncImage(model = photo, contentDescription = stringResource(R.string.cd_profile_photo), modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         } else {
-            Icon(Icons.Default.Person, contentDescription = "Sem foto", modifier = Modifier.padding(24.dp).fillMaxSize(), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            Icon(Icons.Default.Person, contentDescription = stringResource(R.string.cd_no_photo), modifier = Modifier.padding(24.dp).fillMaxSize(), tint = MaterialTheme.colorScheme.onPrimaryContainer)
         }
     }
 }

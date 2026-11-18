@@ -31,7 +31,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.res.stringResource
 import coil3.compose.AsyncImage
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.Incident
 import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.model.IncidentStatus
@@ -47,7 +51,8 @@ fun IncidentCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            // Etiqueta da ação para o leitor de ecrã ("toque duas vezes para abrir detalhes")
+            .clickable(onClickLabel = stringResource(R.string.cd_open_incident), role = Role.Button, onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -65,15 +70,15 @@ fun IncidentCard(
                 if (thumb.isNotBlank()) {
                     AsyncImage(
                         model = thumb,
-                        contentDescription = "Miniatura de ${incident.title}",
+                        contentDescription = stringResource(R.string.cd_thumbnail_of, incident.title),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                     if (incident.media.firstOrNull()?.isVideo == true) {
-                        Icon(Icons.Default.PlayCircle, contentDescription = "Vídeo", tint = Color.White)
+                        Icon(Icons.Default.PlayCircle, contentDescription = stringResource(R.string.cd_video), tint = Color.White)
                     }
                 } else if (incident.mediaPendingCount > 0) {
-                    Icon(Icons.Default.CloudUpload, contentDescription = "Multimédia a enviar")
+                    Icon(Icons.Default.CloudUpload, contentDescription = stringResource(R.string.cd_media_uploading))
                 }
             }
 
@@ -89,7 +94,7 @@ fun IncidentCard(
                     StatusChip(incident.status)
                 }
                 Text(
-                    text = "${incident.categoryName.ifBlank { "Geral" }}  •  ${incidentSituationLabel(incident.situation)}",
+                    text = "${incident.categoryName.ifBlank { stringResource(R.string.category_general) }}  •  ${incidentSituationLabel(incident.situation)}",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -103,7 +108,7 @@ fun IncidentCard(
                     Icon(Icons.Default.ThumbUp, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.size(4.dp))
                     Text(
-                        text = "${incident.supporterIds.size} apoiantes",
+                        text = pluralStringResource(R.plurals.supporters_count, incident.supporterIds.size, incident.supporterIds.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )

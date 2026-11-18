@@ -31,7 +31,8 @@ class ImpactDetector(
 ) : SensorEventListener {
     private val gravity = FloatArray(3)
     private var initialized = false
-    private var lastImpactAt = 0L
+    /** null = ainda não houve nenhum impacto (o primeiro nunca é travado pelo intervalo mínimo). */
+    private var lastImpactAt: Long? = null
 
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type != Sensor.TYPE_ACCELEROMETER) return
@@ -56,7 +57,7 @@ class ImpactDetector(
             (values[2] - gravity[2]) * gravity[2]) / gNorm
 
         val now = clock()
-        if (kotlin.math.abs(vertical) >= thresholdMs2 && now - lastImpactAt >= cooldownMs) {
+        if (kotlin.math.abs(vertical) >= thresholdMs2 && (lastImpactAt?.let { now - it >= cooldownMs } ?: true)) {
             lastImpactAt = now
             onImpact(kotlin.math.abs(vertical))
         }

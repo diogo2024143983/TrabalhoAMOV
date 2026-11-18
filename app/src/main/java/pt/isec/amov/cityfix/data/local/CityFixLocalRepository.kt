@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -57,6 +58,16 @@ class CityFixLocalRepository(context: Context) {
         dataStore.edit { it.remove(USER_KEY) }
     }
 
+    /**
+     * true entre a autenticação por palavra-passe e a confirmação do código MFA. Se a app for fechada
+     * nesse intervalo, a sessão Firebase já existe mas não pode ser aceite no arranque seguinte.
+     */
+    suspend fun isMfaPending(): Boolean = preferences.map { it[MFA_PENDING_KEY] ?: false }.first()
+
+    suspend fun setMfaPending(pending: Boolean) {
+        dataStore.edit { if (pending) it[MFA_PENDING_KEY] = true else it.remove(MFA_PENDING_KEY) }
+    }
+
     suspend fun loadIncidents(): List<Incident> = preferences.map { prefs ->
         prefs[INCIDENTS_KEY]?.let {
             runCatching { json.decodeFromString(ListSerializer(Incident.serializer()), it) }.getOrNull()
@@ -79,5 +90,6 @@ class CityFixLocalRepository(context: Context) {
         val USER_KEY = stringPreferencesKey("user")
         val INCIDENTS_KEY = stringPreferencesKey("incidents")
         val CLOSING_NOTIFIED_KEY = stringSetPreferencesKey("closing_notified")
+        val MFA_PENDING_KEY = booleanPreferencesKey("mfa_pending")
     }
 }

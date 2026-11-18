@@ -28,7 +28,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,8 +43,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import coil3.compose.AsyncImage
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.UserRole
+import pt.isec.amov.cityfix.ui.components.LabeledSwitch
 import pt.isec.amov.cityfix.ui.theme.CityFixTheme
 import pt.isec.amov.cityfix.viewmodel.AuthFormUiState
 
@@ -81,16 +83,16 @@ fun AuthScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Confirmação de Segurança", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth())
+            Text(stringResource(R.string.mfa_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth())
             Text(
-                "Enviámos um código de 6 dígitos por notificação para o teu telemóvel. Introduz o código abaixo para concluir o login.",
+                stringResource(R.string.mfa_message),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth()
             )
             ValidatedField(
                 value = state.mfaCode,
                 onValueChange = onMfaCodeChange,
-                label = "Código de 6 dígitos",
+                label = stringResource(R.string.mfa_code_label),
                 error = state.mfaError,
                 keyboardType = KeyboardType.Number
             )
@@ -99,10 +101,10 @@ fun AuthScreen(
                 enabled = state.mfaCode.length == 6,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Confirmar e Entrar")
+                Text(stringResource(R.string.mfa_confirm))
             }
             OutlinedButton(onClick = onCancelMfa, modifier = Modifier.fillMaxWidth()) {
-                Text("Voltar")
+                Text(stringResource(R.string.btn_back))
             }
         }
         return
@@ -117,22 +119,22 @@ fun AuthScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Criar Nova Conta", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.auth_new_account), style = MaterialTheme.typography.headlineSmall)
             Text(
-                "Selecione primeiro o tipo de conta que pretende criar:",
+                stringResource(R.string.auth_choose_account_type),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             RoleCard(
                 icon = Icons.Default.Person,
-                title = "Conta de Munícipe",
-                subtitle = "Para cidadãos residentes reportarem e acompanharem ocorrências no município.",
+                title = stringResource(R.string.auth_citizen_account),
+                subtitle = stringResource(R.string.auth_citizen_account_desc),
                 color = MaterialTheme.colorScheme.primaryContainer,
                 onClick = { onRoleSelected(UserRole.CITIZEN) }
             )
             RoleCard(
                 icon = Icons.Default.Build,
-                title = "Operador Municipal",
-                subtitle = "Para funcionários dos serviços camarários (requer email institucional @cm-coimbra.pt).",
+                title = stringResource(R.string.role_operator),
+                subtitle = stringResource(R.string.auth_operator_account_desc),
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 onClick = { onRoleSelected(UserRole.OPERATOR) }
             )
@@ -140,7 +142,7 @@ fun AuthScreen(
                 onClick = { onRegisterModeChange(false) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Já tens conta? Inicia sessão")
+                Text(stringResource(R.string.auth_have_account))
             }
         }
         return
@@ -158,17 +160,17 @@ fun AuthScreen(
         Column(Modifier.fillMaxWidth()) {
             Text(
                 text = when {
-                    !state.isRegisterMode -> "Iniciar Sessão"
-                    role == UserRole.CITIZEN -> "Registo de Munícipe"
-                    else -> "Registo de Operador Municipal"
+                    !state.isRegisterMode -> stringResource(R.string.btn_login)
+                    role == UserRole.CITIZEN -> stringResource(R.string.auth_register_citizen)
+                    else -> stringResource(R.string.auth_register_operator)
                 },
                 style = MaterialTheme.typography.headlineSmall
             )
             if (state.isRegisterMode) {
-                TextButton(onClick = { onRoleSelected(null) }) { Text("← Mudar tipo de conta") }
+                TextButton(onClick = { onRoleSelected(null) }) { Text(stringResource(R.string.auth_change_account_type)) }
             } else {
                 Text(
-                    "Introduza o seu email e palavra-passe.",
+                    stringResource(R.string.auth_login_hint),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -184,14 +186,14 @@ fun AuthScreen(
                 if (state.photoUri != null) {
                     AsyncImage(
                         model = state.photoUri,
-                        contentDescription = "Foto selecionada",
+                        contentDescription = stringResource(R.string.cd_selected_photo),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
                     Icon(
                         Icons.Default.Person,
-                        contentDescription = "Sem foto",
+                        contentDescription = stringResource(R.string.cd_no_photo),
                         modifier = Modifier
                             .padding(20.dp)
                             .fillMaxSize(),
@@ -206,20 +208,20 @@ fun AuthScreen(
                     )
                 )
             }) {
-                Text(if (state.photoUri != null) "Trocar Foto" else "Adicionar Foto (Opcional)")
+                Text(stringResource(if (state.photoUri != null) R.string.auth_change_photo else R.string.auth_add_photo))
             }
-            ValidatedField(state.name, onNameChange, "Nome Completo *", state.nameError)
+            ValidatedField(state.name, onNameChange, stringResource(R.string.name_label) + " *", state.nameError)
             ValidatedField(
                 state.phone,
                 onPhoneChange,
-                "Número de Telefone *",
+                stringResource(R.string.phone_label) + " *",
                 state.phoneError,
                 KeyboardType.Phone
             )
             ValidatedField(
                 state.nif,
                 onNifChange,
-                "NIF (Único) *",
+                stringResource(R.string.auth_nif_unique),
                 state.nifError,
                 KeyboardType.Number
             )
@@ -227,29 +229,26 @@ fun AuthScreen(
                 ValidatedField(
                     state.georeference,
                     onGeoreferenceChange,
-                    "Morada / Georreferenciação *",
+                    stringResource(R.string.address_label) + " *",
                     state.georeferenceError
                 )
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = state.impactDetectionEnabled,
-                        onCheckedChange = onImpactDetectionChange
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Text("Ativar Deteção Automática de Impactos")
-                }
+                LabeledSwitch(
+                    text = stringResource(R.string.impact_sensor_toggle),
+                    checked = state.impactDetectionEnabled,
+                    onCheckedChange = onImpactDetectionChange
+                )
             }
         }
 
         ValidatedField(
             state.email, onEmailChange,
-            if (role == UserRole.OPERATOR && state.isRegisterMode) "Email Municipal (@cm-coimbra.pt) *" else "Email *",
+            if (role == UserRole.OPERATOR && state.isRegisterMode) stringResource(R.string.auth_municipal_email) else stringResource(R.string.email_label) + " *",
             state.emailError, KeyboardType.Email
         )
         OutlinedTextField(
             value = state.password,
             onValueChange = onPasswordChange,
-            label = { Text("Palavra-passe (mín. 6 carateres) *") },
+            label = { Text(stringResource(R.string.auth_password_min)) },
             isError = state.passwordError != null,
             supportingText = state.passwordError?.let { { Text(it) } },
             visualTransformation = PasswordVisualTransformation(),
@@ -273,14 +272,14 @@ fun AuthScreen(
                 enabled = state.isValid,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (state.isRegisterMode) "Criar Conta" else "Entrar")
+                Text(stringResource(if (state.isRegisterMode) R.string.btn_register else R.string.auth_enter))
             }
         }
         TextButton(
             onClick = { onRegisterModeChange(!state.isRegisterMode) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (state.isRegisterMode) "Já tens conta? Inicia sessão" else "Não tens conta? Criar nova conta")
+            Text(stringResource(if (state.isRegisterMode) R.string.auth_have_account else R.string.auth_no_account))
         }
         if (!state.isRegisterMode) {
             TextButton(
@@ -288,12 +287,12 @@ fun AuthScreen(
                 enabled = !state.isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Esqueci-me da palavra-passe")
+                Text(stringResource(R.string.forgot_password))
             }
             OutlinedButton(
                 onClick = onGuest,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Continuar como Cidadão Anónimo") }
+            ) { Text(stringResource(R.string.btn_continue_as_guest)) }
         }
         Spacer(Modifier.height(24.dp))
     }

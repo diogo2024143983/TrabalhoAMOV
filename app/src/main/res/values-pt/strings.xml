@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">CityFix</string>
 
-    <!-- Navigation / Screen Titles -->
+    <!-- Navegação / títulos -->
     <string name="nav_dashboard">Início</string>
     <string name="nav_public_incidents">Ocorrências</string>
     <string name="nav_my_tickets">As Minhas Ocorrências</string>
@@ -14,84 +14,312 @@
     <string name="nav_register">Registar</string>
     <string name="nav_incident_details">Detalhes da Ocorrência</string>
 
-    <!-- Roles & Status -->
+    <!-- Perfis e estado -->
     <string name="role_anonymous">Munícipe Anónimo</string>
-    <string name="role_citizen">Munícipe Registado</string>
+    <string name="role_citizen">Munícipe</string>
     <string name="role_operator">Operador Municipal</string>
-    <string name="status_pending_validation">Pendente de Validação de NIF</string>
+    <string name="status_pending_validation">Pendente de validação por operador</string>
     <string name="status_active">Ativo</string>
 
-    <!-- Incident Statuses -->
-    <string name="status_open">Aberto</string>
+    <!-- Estados da ocorrência -->
+    <string name="status_open">Aberta</string>
     <string name="status_info_request">Pedido de Informação</string>
     <string name="status_in_resolution">Em Resolução</string>
-    <string name="status_resolved">Resolvido</string>
-    <string name="status_closed">Fechado</string>
+    <string name="status_resolved">Resolvida</string>
+    <string name="status_closed">Encerrada</string>
 
-    <!-- Incident Situations -->
+    <!-- Situações -->
     <string name="situation_damage">Dano</string>
     <string name="situation_breakdown">Avaria</string>
     <string name="situation_destruction">Destruição</string>
     <string name="situation_theft">Roubo</string>
 
-    <!-- Incident Scope -->
-    <string name="scope_public">Público</string>
-    <string name="scope_private">Privado (Apenas Serviços Municipais)</string>
+    <!-- Âmbito -->
+    <string name="scope_public">Ocorrência pública</string>
+    <string name="scope_private">Ocorrência privada (apenas serviços municipais)</string>
 
-    <!-- Dashboard Statistics -->
-    <string name="dash_avg_resolution_time">Tempo Médio de Reparação</string>
-    <string name="dash_total_tickets">Total de Ocorrências</string>
-    <string name="dash_active_percentage">% Ativas</string>
+    <!-- Dashboard -->
+    <string name="dash_avg_resolution_time">Tempo Médio</string>
+    <string name="dash_total_tickets">Total</string>
+    <string name="dash_active_percentage">Ativas (%)</string>
     <string name="dash_hours_format">%.1f h</string>
     <string name="dash_days_format">%.1f dias</string>
+    <string name="dash_improve_city">Melhore a sua cidade</string>
+    <string name="dash_hello">Olá, %1$s!</string>
+    <string name="dash_anonymous_message">Consulte o estado de resolução das ocorrências na sua cidade.</string>
+    <string name="dash_user_message">Reporte ocorrências públicas ou acompanhe a evolução das que já registou.</string>
+    <string name="dash_community_title">Ocorrências da Comunidade</string>
+    <string name="dash_community_message">Consulte os problemas ativos e acompanhe a resolução em tempo real.</string>
+    <string name="dash_explore">Explorar ocorrências</string>
 
-    <!-- Geofencing & Location -->
-    <string name="geofence_out_of_bounds_title">Fora da Área de Operação</string>
-    <string name="geofence_out_of_bounds_message">Encontra-se fora do raio de 10 km da Praça da República em Coimbra. O acesso a operações públicas está limitado.</string>
+    <!-- Lista -->
+    <string name="list_title">Ocorrências Registadas</string>
+    <string name="list_subtitle">Lista de problemas reportados pela comunidade</string>
+    <string name="list_filter_public">Públicas Ativas</string>
+    <string name="list_empty">Ainda não existem ocorrências nesta vista.</string>
+    <plurals name="supporters_count">
+        <item quantity="one">%d apoiante</item>
+        <item quantity="many">%d apoiantes</item>
+        <item quantity="other">%d apoiantes</item>
+    </plurals>
+    <string name="category_general">Geral</string>
+
+    <!-- Geofence e localização -->
+    <string name="geofence_out_of_bounds_title">Fora do Perímetro de 10 km</string>
+    <string name="geofence_out_of_bounds_message">O acesso de Munícipe Anónimo está restrito a um raio de 10 km com centro na Praça da República (Coimbra). Inicie sessão para consultar ocorrências fora deste perímetro.</string>
     <string name="geofence_operator_distance_required">É obrigatório estar a menos de 20 metros da ocorrência para iniciar a resolução.</string>
-    <string name="geofence_operator_near_alert">Alerta de Proximidade: Encontra-se a menos de 20m de uma ocorrência ativa!</string>
+    <string name="geofence_operator_near_alert">Alerta de Proximidade: encontra-se a menos de 20 m de uma ocorrência ativa!</string>
     <string name="duplicate_warning_title">Possível Ocorrência Duplicada</string>
-    <string name="duplicate_warning_message">Já existe uma ocorrência registada a menos de 10 metros deste local. Pretende subscrever e apoiar a ocorrência existente?</string>
+    <string name="duplicate_warning_message">Já existe uma ocorrência registada a menos de 10 metros deste local. Pretende apoiar a ocorrência existente?</string>
     <string name="btn_upvote_existing">Apoiar Existente</string>
     <string name="btn_proceed_anyway">Submeter na Mesma</string>
+    <string name="bg_location_title">Localização em segundo plano</string>
+    <string name="bg_location_message">Para avisar os munícipes quando está a menos de 20 m de uma ocorrência, mesmo com a app fechada, o CityFix precisa da opção “Permitir sempre”.</string>
 
-    <!-- Impact Detection -->
-    <string name="impact_alert_title">Impacto na Via Detetado!</string>
-    <string name="impact_alert_message">Foi detetada uma desaceleração vertical brusca. Deseja reportar uma anomalia na via (ex: buraco) na localização atual?</string>
-    <string name="btn_report_hazard">Reportar Buraco/Anomalia</string>
+    <!-- Deteção de impactos -->
+    <string name="impact_alert_title">Impacto na Via Detetado</string>
+    <string name="impact_alert_message">Foi detetada uma desaceleração vertical brusca. Deseja reportar uma anomalia na via na localização atual?</string>
+    <string name="impact_alert_message_value">Detetámos um solavanco forte na estrada (%1$.1f m/s²). Quer reportar um buraco ou anomalia neste local?</string>
+    <string name="btn_report_hazard">Reportar</string>
     <string name="btn_dismiss">Ignorar</string>
+    <string name="impact_prefill_title">Possível buraco ou desnível na via</string>
+    <string name="impact_prefill_description">Impacto detetado automaticamente pelo acelerómetro (intensidade %1$.1f m/s²). Confirme e acrescente detalhes.</string>
 
-    <!-- Forms & Actions -->
-    <string name="title_label">Título</string>
-    <string name="description_label">Descrição</string>
+    <!-- Nova ocorrência -->
+    <string name="report_title">Registar Ocorrência</string>
+    <string name="title_label">Título da ocorrência</string>
+    <string name="description_label">Descrição detalhada</string>
     <string name="category_label">Categoria</string>
-    <string name="situation_label">Situação</string>
-    <string name="location_label">Localização</string>
-    <string name="take_photo">Tirar Fotografia</string>
-    <string name="choose_gallery">Escolher Multimédia</string>
-    <string name="submit_incident">Submeter Ocorrência</string>
+    <string name="situation_label">Situação do problema:</string>
+    <string name="location_label">Morada / Localização</string>
+    <string name="take_photo">Câmara</string>
+    <string name="choose_gallery">Galeria</string>
+    <string name="submit_incident">Submeter</string>
+    <string name="report_use_gps">Usar GPS</string>
+    <string name="report_attachments">Fotografias / vídeos * (%1$d/%2$d)</string>
+    <string name="report_tap_map">Toque no mapa para indicar o local</string>
+    <string name="report_gps_ok">Localização GPS obtida.</string>
+    <string name="report_gps_unavailable">GPS indisponível. Toque no mapa para escolher o local.</string>
+    <string name="report_gps_no_permission">Sem permissão de localização. Toque no mapa para escolher o local.</string>
+    <string name="report_address_found">Morada encontrada no mapa!</string>
+    <string name="report_address_not_found">Morada não encontrada. Tente ajustar ou toque no mapa.</string>
+    <string name="report_map_picked">Local escolhido no mapa.</string>
+    <string name="report_duplicate_supported">Já existia uma ocorrência igual a menos de 10 m. Foi adicionado como apoiante.</string>
+    <string name="report_submitted">Ocorrência registada! A multimédia será enviada em segundo plano.</string>
     <string name="resolution_proof_required">É obrigatório anexar foto ou vídeo comprovativo da reparação.</string>
     <string name="btn_reopen_ticket">Reabrir Ocorrência</string>
-    <string name="reopen_window_notice">Pode reabrir esta ocorrência no prazo de 5 dias após resolução caso o problema persista.</string>
+    <string name="reopen_window_notice">Pode reabrir esta ocorrência no prazo de 5 dias após a resolução caso o problema persista.</string>
     <string name="ticket_closed_notice">Esta ocorrência encontra-se encerrada e já não pode ser alterada.</string>
 
-    <!-- Messages & Communication -->
-    <string name="messages_section_title">Canal com Serviços Municipais</string>
-    <string name="send_message_placeholder">Escreva uma mensagem...</string>
+    <!-- Detalhe -->
+    <string name="detail_not_found">Ocorrência não encontrada.</string>
+    <string name="detail_reopen_title">Reabrir Ocorrência (Prazo de 5 dias)</string>
+    <string name="detail_reopen_reason">Motivo da Reabertura *</string>
+    <string name="detail_reopen_confirm">Confirmar Reabertura</string>
+    <string name="detail_reopen_button">Reabrir Ocorrência (até 5 dias após a resolução)</string>
+    <string name="detail_info_title_operator">Pedir informações ao munícipe</string>
+    <string name="detail_info_title_citizen">Pedir esclarecimentos à autarquia</string>
+    <string name="detail_info_label_operator">Que informação é necessária? *</string>
+    <string name="detail_info_label_citizen">Ex.: estimativa temporal, procedimento *</string>
+    <string name="detail_info_send">Enviar pedido</string>
+    <string name="detail_info_by_operator">A autarquia pediu informações complementares.</string>
+    <string name="detail_info_by_citizen">O munícipe pediu esclarecimentos.</string>
+    <string name="detail_info_reply_below">Responda nas mensagens abaixo.</string>
+    <string name="detail_info_waiting">A aguardar resposta.</string>
+    <string name="detail_resolution_proof">Prova de Resolução</string>
+    <plurals name="detail_support">
+        <item quantity="one">Apoiar Ocorrência (%d apoio)</item>
+        <item quantity="many">Apoiar Ocorrência (%d apoios)</item>
+        <item quantity="other">Apoiar Ocorrência (%d apoios)</item>
+    </plurals>
+    <string name="detail_history">Histórico</string>
+    <string name="detail_closed_no_messages">Ticket encerrado: não admite novas mensagens.</string>
+    <string name="detail_category">Categoria: %1$s</string>
+    <string name="detail_situation">Situação: %1$s</string>
+    <string name="detail_status">Estado: %1$s</string>
+    <string name="detail_author">Autor: %1$s</string>
+    <string name="detail_author_contact">Contacto do autor: %1$s</string>
+    <string name="detail_location">Localização: %1$s</string>
+    <string name="detail_anonymous_hidden">Autor e morada ocultos (perfil anónimo)</string>
+    <string name="detail_reopen_reason_value">Motivo de reabertura: %1$s</string>
+    <string name="detail_auto_close">Encerramento automático em %1$s</string>
+    <string name="detail_navigate">Navegar até ao local</string>
+    <string name="detail_operator_title">Gestão Operacional</string>
+    <string name="detail_request_info">Pedir Info</string>
+    <string name="detail_start_resolution">Iniciar Resolução</string>
+    <string name="detail_work_started">Trabalhos iniciados a %1$s</string>
+    <string name="detail_register_work">Registar início dos trabalhos</string>
+    <string name="detail_proof_selected">Prova selecionada ✓ (alterar)</string>
+    <string name="detail_attach_proof">Anexar foto/vídeo do trabalho concluído *</string>
+    <string name="detail_mark_resolved">Marcar como Resolvido</string>
+    <string name="detail_waiting_reopen">Aguarda o prazo de reabertura. O ticket é encerrado automaticamente após 5 dias.</string>
+    <string name="detail_closed_final">Esta ocorrência está definitivamente encerrada.</string>
+    <string name="time_days_hours">%1$d dia(s) e %2$d h</string>
+    <string name="time_hours">%1$d h</string>
+
+    <!-- Notas do histórico -->
+    <string name="history_submitted">Ocorrência submetida</string>
+    <string name="history_clarified">Esclarecimento prestado</string>
+    <string name="history_resolved_photo">Resolvido com prova fotográfica</string>
+    <string name="history_resolved_video">Resolvido com prova em vídeo</string>
+    <string name="history_reopened">Reaberto: %1$s</string>
+
+    <!-- Mensagens -->
+    <string name="messages_section_title">Comunicação com os Serviços Camarários</string>
+    <string name="send_message_placeholder">Escreva uma mensagem…</string>
     <string name="btn_send">Enviar</string>
 
-    <!-- Auth -->
-    <string name="email_label">Correio Eletrónico</string>
+    <!-- Autenticação -->
+    <string name="email_label">Email</string>
     <string name="password_label">Palavra-passe</string>
     <string name="name_label">Nome Completo</string>
-    <string name="phone_label">Contacto Telefónico</string>
+    <string name="phone_label">Número de Telefone</string>
     <string name="nif_label">NIF</string>
     <string name="address_label">Morada / Georreferenciação</string>
-    <string name="impact_sensor_toggle">Ativar Deteção Automática de Impacto na Via</string>
+    <string name="impact_sensor_toggle">Ativar Deteção Automática de Impactos</string>
     <string name="btn_login">Iniciar Sessão</string>
     <string name="btn_register">Criar Conta</string>
     <string name="btn_logout">Terminar Sessão</string>
     <string name="btn_continue_as_guest">Continuar como Munícipe Anónimo</string>
-    <string name="forgot_password">Recuperar Palavra-passe</string>
-    <string name="account_pending_warning">A sua conta aguarda validação municipal. Pode consultar ocorrências públicas, mas a submissão de novos pedidos encontra-se temporariamente suspensa.</string>
+    <string name="forgot_password">Esqueci-me da palavra-passe</string>
+    <string name="account_pending_warning">A sua conta está a aguardar a validação do NIF por um operador municipal.</string>
+    <string name="auth_new_account">Criar Nova Conta</string>
+    <string name="auth_choose_account_type">Selecione primeiro o tipo de conta que pretende criar:</string>
+    <string name="auth_citizen_account">Conta de Munícipe</string>
+    <string name="auth_citizen_account_desc">Para cidadãos residentes reportarem e acompanharem ocorrências no município.</string>
+    <string name="auth_operator_account_desc">Para funcionários dos serviços camarários (requer email institucional @cm-coimbra.pt).</string>
+    <string name="auth_have_account">Já tem conta? Inicie sessão</string>
+    <string name="auth_no_account">Não tem conta? Crie uma nova</string>
+    <string name="auth_register_citizen">Registo de Munícipe</string>
+    <string name="auth_register_operator">Registo de Operador Municipal</string>
+    <string name="auth_change_account_type">← Mudar tipo de conta</string>
+    <string name="auth_login_hint">Introduza o seu email e palavra-passe.</string>
+    <string name="auth_change_photo">Trocar Fotografia</string>
+    <string name="auth_add_photo">Adicionar Fotografia (Opcional)</string>
+    <string name="auth_nif_unique">NIF (único) *</string>
+    <string name="auth_municipal_email">Email municipal (@cm-coimbra.pt) *</string>
+    <string name="auth_password_min">Palavra-passe (mín. 6 carateres) *</string>
+    <string name="auth_enter">Entrar</string>
+    <string name="reset_email_sent">Enviámos um email para %1$s com instruções para redefinir a palavra-passe.</string>
+
+    <!-- MFA -->
+    <string name="mfa_title">Confirmação de Segurança</string>
+    <string name="mfa_message">Enviámos um código de 6 dígitos por notificação para o seu telemóvel. Introduza-o abaixo para concluir a autenticação.</string>
+    <string name="mfa_code_label">Código de 6 dígitos</string>
+    <string name="mfa_confirm">Confirmar e Entrar</string>
+    <string name="mfa_code_sent">Notificação enviada com o código</string>
+
+    <!-- Perfil -->
+    <string name="profile_title">Perfil do Utilizador</string>
+    <string name="profile_anonymous_title">Está a navegar como Munícipe Anónimo.</string>
+    <string name="profile_anonymous_message">Inicie sessão ou crie uma conta para reportar e acompanhar ocorrências.</string>
+    <string name="profile_not_given">Não indicado</string>
+    <string name="profile_name">Nome: %1$s</string>
+    <string name="profile_email">Email: %1$s</string>
+    <string name="profile_phone">Telefone: %1$s</string>
+    <string name="profile_nif">NIF: %1$s</string>
+    <string name="profile_address">Morada: %1$s</string>
+    <string name="profile_impact">Deteção de impactos: %1$s</string>
+    <string name="profile_enabled">Ativa</string>
+    <string name="profile_disabled">Desativada</string>
+    <string name="profile_role">Função: %1$s</string>
+    <string name="profile_state">Estado: %1$s</string>
+    <string name="profile_edit">Editar Perfil</string>
+    <string name="profile_edit_locked">Nome, NIF e morada não podem ser alterados.</string>
+    <string name="profile_updated">Perfil atualizado com sucesso!</string>
+
+    <!-- Painel do operador -->
+    <string name="op_title">Painel de Gestão Operacional</string>
+    <string name="op_pending_citizens">Munícipes Pendentes de Validação (%1$d)</string>
+    <string name="op_no_pending">Nenhum munícipe pendente de validação.</string>
+    <string name="op_nif_phone">NIF: %1$s  •  Tel: %2$s</string>
+    <string name="op_activate">Ativar Conta</string>
+    <string name="op_keep_pending">Manter Pendente</string>
+    <string name="op_categories">Tipologias de Problemas</string>
+    <string name="op_new_category">Nova categoria</string>
+    <string name="op_edit_category">Editar categoria</string>
+    <string name="op_category_name">Nome</string>
+    <string name="op_active_incidents">Ocorrências Ativas (%1$d)</string>
+
+    <!-- Botões genéricos -->
+    <string name="btn_cancel">Cancelar</string>
+    <string name="btn_save">Guardar</string>
+    <string name="btn_save_changes">Guardar Alterações</string>
+    <string name="btn_add">Adicionar</string>
+    <string name="btn_back">Voltar</string>
+    <string name="btn_continue">Continuar</string>
+    <string name="btn_not_now">Agora não</string>
+
+    <!-- Validação e erros -->
+    <string name="err_name_required">O nome é obrigatório</string>
+    <string name="err_phone_invalid">Telefone inválido (9 dígitos)</string>
+    <string name="err_nif_invalid">NIF inválido</string>
+    <string name="err_nif_taken">Este NIF já se encontra associado a outra conta.</string>
+    <string name="err_address_required">A morada é obrigatória</string>
+    <string name="err_password_short">Mínimo de 6 carateres</string>
+    <string name="err_email_invalid">Email inválido</string>
+    <string name="err_email_municipal">O email de operador deve pertencer ao município (ex: @cm-coimbra.pt)</string>
+    <string name="err_login_failed">Email ou palavra-passe incorretos.</string>
+    <string name="err_register_failed">Erro ao criar a conta.</string>
+    <string name="err_mfa_wrong">Código de verificação incorreto.</string>
+    <string name="err_reset_email_needed">Indique o email da conta para recuperar a palavra-passe</string>
+    <string name="err_reset_failed">Não foi possível enviar o email de recuperação.</string>
+    <string name="err_title_required">O título é obrigatório</string>
+    <string name="err_description_required">A descrição é obrigatória</string>
+    <string name="err_category_required">Escolha uma categoria</string>
+    <string name="err_location_required">A localização é obrigatória</string>
+    <string name="err_attachment_required">Anexe pelo menos uma foto ou vídeo</string>
+    <string name="err_media_processing">Não foi possível processar os ficheiros.</string>
+    <string name="err_support_failed">Erro ao apoiar a ocorrência.</string>
+    <string name="err_resolve_state">Só é possível resolver ocorrências em resolução.</string>
+    <string name="err_proof_processing">Não foi possível processar a prova de resolução.</string>
+    <string name="err_reopen_expired">Prazo de 5 dias expirado. A ocorrência encontra-se encerrada.</string>
+    <string name="err_reopen_reason">É obrigatório justificar o motivo da reabertura.</string>
+
+    <!-- Notificações -->
+    <string name="channel_updates">Atualizações CityFix</string>
+    <string name="channel_updates_desc">Atualizações sobre as ocorrências reportadas</string>
+    <string name="channel_proximity">Serviço de proximidade</string>
+    <string name="proximity_service_title">CityFix – Operador em serviço</string>
+    <string name="proximity_service_text">A detetar ocorrências ativas num raio de 20 m.</string>
+    <string name="notif_generic_update">Há uma atualização numa ocorrência.</string>
+    <string name="notif_new_incident">Nova ocorrência</string>
+    <string name="notif_reopened">A ocorrência foi reaberta.</string>
+    <string name="notif_open_again">A ocorrência voltou a estar aberta.</string>
+    <string name="notif_info_request">Foi pedido um esclarecimento. Responda nas mensagens do ticket.</string>
+    <string name="notif_in_resolution">A equipa municipal iniciou a resolução.</string>
+    <string name="notif_resolved">O problema foi resolvido. Pode reabrir durante 5 dias.</string>
+    <string name="notif_closed">O ticket foi encerrado e arquivado.</string>
+    <string name="notif_new_message">Nova mensagem: %1$s</string>
+    <string name="notif_team_nearby_title">A equipa camarária está na área</string>
+    <string name="notif_team_nearby_text">%1$s está junto de “%2$s”.</string>
+    <string name="notif_an_operator">Um operador</string>
+    <string name="notif_operator_near_title">Ocorrência ativa nas proximidades</string>
+    <string name="notif_operator_near_text">Está a %1$.0f m de “%2$s”. Os autores foram avisados.</string>
+    <string name="notif_mfa_title">Código de Segurança CityFix</string>
+    <string name="notif_mfa_text">O seu código de confirmação é %1$s. Introduza-o na aplicação para entrar.</string>
+    <string name="notif_last_day_title">Último dia para reabrir</string>
+    <string name="notif_last_day_text">“%1$s” será encerrado definitivamente dentro de 24 horas.</string>
+
+    <!-- Acessibilidade -->
+    <string name="cd_menu">Menu</string>
+    <string name="cd_back">Voltar</string>
+    <string name="cd_category_active">Categoria %1$s ativa</string>
+    <string name="cd_open_incident">abrir detalhes</string>
+    <string name="cd_profile_photo">Foto de perfil</string>
+    <string name="cd_selected_photo">Foto selecionada</string>
+    <string name="cd_no_photo">Sem foto</string>
+    <string name="cd_search_address">Procurar morada no mapa</string>
+    <string name="cd_thumbnail_of">Miniatura de %1$s</string>
+    <string name="cd_video">Vídeo</string>
+    <string name="cd_media_uploading">Multimédia a enviar</string>
+    <string name="cd_fullscreen_photo">Fotografia em ecrã inteiro</string>
+    <string name="cd_close">Fechar</string>
+    <string name="cd_incident_photo">Fotografia da ocorrência</string>
+    <string name="cd_incident_video">Vídeo da ocorrência</string>
+    <string name="cd_play_video">Reproduzir vídeo</string>
+    <string name="cd_selected_attachment">Anexo selecionado</string>
+    <string name="cd_remove_attachment">Remover anexo</string>
+    <string name="cd_edit_category">Editar %1$s</string>
+    <string name="media_uploading">Multimédia em envio (será carregada quando houver rede)…</string>
 </resources>

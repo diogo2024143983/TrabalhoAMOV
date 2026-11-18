@@ -19,6 +19,8 @@ import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.model.StatusChange
 import java.util.UUID
+import pt.isec.amov.cityfix.R
+import pt.isec.amov.cityfix.utils.Strings
 import pt.isec.amov.cityfix.model.MediaAttachment
 import java.io.File
 
@@ -54,17 +56,18 @@ data class ReportIncidentUiState(
 
 class ReportIncidentViewModel(
     private val cloudRepository: CityFixFirebaseRepository,
-    private val mediaRepository: MediaRepository
+    private val mediaRepository: MediaRepository,
+    private val strings: Strings = Strings { id, _ -> id.toString() }
 ) : ViewModel() {
     private val _formState = MutableStateFlow(ReportIncidentUiState())
     val formState: StateFlow<ReportIncidentUiState> = _formState.asStateFlow()
 
     fun onTitleChanged(value: String) = _formState.update {
-        it.copy(title = value, titleError = if (value.isBlank()) "O título é obrigatório" else null)
+        it.copy(title = value, titleError = if (value.isBlank()) strings.get(R.string.err_title_required) else null)
     }
 
     fun onDescriptionChanged(value: String) = _formState.update {
-        it.copy(description = value, descriptionError = if (value.isBlank()) "A descrição é obrigatória" else null)
+        it.copy(description = value, descriptionError = if (value.isBlank()) strings.get(R.string.err_description_required) else null)
     }
 
     fun onCategorySelected(category: IncidentCategory) = _formState.update { it.copy(category = category, categoryError = null) }
@@ -77,10 +80,9 @@ class ReportIncidentViewModel(
     fun prefillFromImpact(categories: List<IncidentCategory>, magnitude: Float?) = _formState.update { form ->
         if (form.title.isNotBlank()) return@update form
         val roads = categories.firstOrNull { it.id == "vias" } ?: categories.firstOrNull { it.name.contains("Vias", ignoreCase = true) }
-        val detail = magnitude?.let { " (intensidade %.1f m/s²)".format(it) }.orEmpty()
         form.copy(
-            title = "Possível buraco ou desnível na via",
-            description = "Impacto detetado automaticamente pelo acelerómetro$detail. Confirme e acrescente detalhes.",
+            title = strings.get(R.string.impact_prefill_title),
+            description = strings.get(R.string.impact_prefill_description, magnitude ?: 0f),
             category = roads ?: form.category,
             situation = IncidentSituation.DAMAGE,
             titleError = null,
@@ -90,7 +92,7 @@ class ReportIncidentViewModel(
     }
 
     fun onAddressChanged(value: String) = _formState.update {
-        it.copy(locationAddress = value, addressError = if (value.isBlank()) "A localização é obrigatória" else null)
+        it.copy(locationAddress = value, addressError = if (value.isBlank()) strings.get(R.string.err_location_required) else null)
     }
 
     /** Localização escolhida no mapa ou obtida pelo GPS (LocationTracker). */
@@ -113,7 +115,7 @@ class ReportIncidentViewModel(
 
     fun onAttachmentRemoved(uri: String) = _formState.update {
         val remaining = it.attachments - uri
-        it.copy(attachments = remaining, attachmentsError = if (remaining.isEmpty()) "Anexe pelo menos uma foto ou vídeo" else null)
+        it.copy(attachments = remaining, attachmentsError = if (remaining.isEmpty()) strings.get(R.string.err_attachment_required) else null)
     }
 
     fun createCaptureUri(): Uri = mediaRepository.createCaptureUri()
@@ -122,11 +124,11 @@ class ReportIncidentViewModel(
     private fun validateAll(): Boolean {
         _formState.update {
             it.copy(
-                titleError = if (it.title.isBlank()) "O título é obrigatório" else null,
-                descriptionError = if (it.description.isBlank()) "A descrição é obrigatória" else null,
-                categoryError = if (it.category == null) "Escolha uma categoria" else null,
-                addressError = if (it.locationAddress.isBlank()) "A localização é obrigatória" else null,
-                attachmentsError = if (it.attachments.isEmpty()) "Anexe pelo menos uma foto ou vídeo" else null
+                titleError = if (it.title.isBlank()) strings.get(R.string.err_title_required) else null,
+                descriptionError = if (it.description.isBlank()) strings.get(R.string.err_description_required) else null,
+                categoryError = if (it.category == null) strings.get(R.string.err_category_required) else null,
+                addressError = if (it.locationAddress.isBlank()) strings.get(R.string.err_location_required) else null,
+                attachmentsError = if (it.attachments.isEmpty()) strings.get(R.string.err_attachment_required) else null
             )
         }
         return _formState.value.isValid
@@ -147,8 +149,8 @@ class ReportIncidentViewModel(
             cloudRepository.addSupporter(
                 ticketId = duplicate.id,
                 userId = authorId,
-                onSuccess = { onResult(true, "Já existia uma ocorrência igual a menos de 10 m. Foste adicionado como apoiante.") },
-                onError = { e -> onResult(false, e.localizedMessage ?: "Erro ao apoiar a ocorrência.") }
+                onSuccess = { onResult(true, strings.get(R.string.report_duplicate_supported)) },
+                onError = { e -> onResult(false, e.localizedMessage ?: strings.get(R.string.err_support_failed)) }
             )
             return
         }
@@ -157,7 +159,7 @@ class ReportIncidentViewModel(
         viewModelScope.launch {
             val prepared = form.attachments.mapNotNull { mediaRepository.prepare(Uri.parse(it), "ticket") }
             if (prepared.isEmpty()) {
-                _formState.update { it.copy(isSaving = false, attachmentsError = "Não foi possível processar os ficheiros.") }
+                _formState.update { it.copy(isSaving = false, attachmentsError = strings.get(R.string.err_media_processing)) }
                 return@launch
             }
 
@@ -189,14 +191,14 @@ class ReportIncidentViewModel(
                 media = localAttachments,
                 mediaPendingCount = 0,
                 createdAt = now,
-                history = listOf(StatusChange(IncidentStatus.OPEN, now, authorId, user.name, user.role, "Ocorrência submetida")),
+                history = listOf(StatusChange(IncidentStatus.OPEN, now, authorId, user.name, user.role, strings.get(R.string.history_submitted))),
                 supporterIds = listOf(authorId)
             )
             cloudRepository.createTicket(incident)
             prepared.forEachIndexed { index, media -> mediaRepository.enqueueTicketMedia(ticketId, index, media) }
 
             _formState.update { it.copy(isSaving = false) }
-            onResult(true, "Ocorrência registada! A multimédia será enviada em segundo plano.")
+            onResult(true, strings.get(R.string.report_submitted))
         }
     }
 }

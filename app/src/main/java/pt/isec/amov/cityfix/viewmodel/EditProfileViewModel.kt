@@ -11,7 +11,9 @@ import kotlinx.coroutines.launch
 import pt.isec.amov.cityfix.data.MediaRepository
 import pt.isec.amov.cityfix.data.cloud.CityFixFirebaseRepository
 import pt.isec.amov.cityfix.model.CityFixUser
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.utils.CityFixUtils
+import pt.isec.amov.cityfix.utils.Strings
 
 /** Edição de perfil: nome, NIF e georreferenciação não são editáveis (enunciado, I.2.C). */
 data class EditProfileUiState(
@@ -28,7 +30,8 @@ data class EditProfileUiState(
 class EditProfileViewModel(
     private val cloudRepository: CityFixFirebaseRepository,
     private val mediaRepository: MediaRepository,
-    private val user: CityFixUser
+    private val user: CityFixUser,
+    private val strings: Strings = Strings { id, _ -> id.toString() }
 ) : ViewModel() {
     private val _editState = MutableStateFlow(
         EditProfileUiState(
@@ -40,7 +43,7 @@ class EditProfileViewModel(
     val editState: StateFlow<EditProfileUiState> = _editState.asStateFlow()
 
     fun onPhoneChanged(value: String) = _editState.update {
-        it.copy(phone = value, phoneError = if (CityFixUtils.isValidPhone(value)) null else "Telefone inválido (9 dígitos)")
+        it.copy(phone = value, phoneError = if (CityFixUtils.isValidPhone(value)) null else strings.get(R.string.err_phone_invalid))
     }
 
     fun onImpactDetectionChanged(enabled: Boolean) = _editState.update { it.copy(impactDetectionEnabled = enabled) }

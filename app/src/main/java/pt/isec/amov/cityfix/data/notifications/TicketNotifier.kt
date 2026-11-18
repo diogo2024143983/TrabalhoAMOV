@@ -10,6 +10,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import pt.isec.amov.cityfix.MainActivity
+import pt.isec.amov.cityfix.R
+import pt.isec.amov.cityfix.ui.components.statusRes
 import pt.isec.amov.cityfix.data.cloud.CityFixMessagingService
 import pt.isec.amov.cityfix.data.local.CityFixLocalRepository
 import pt.isec.amov.cityfix.model.Incident
@@ -38,32 +40,34 @@ class TicketNotifier(
 
             if (old == null) {
                 if (myRole == UserRole.OPERATOR && ticket.authorId != myUid) {
-                    show(ticket.id, 0, "Nova ocorrência", "${ticket.categoryName}: ${ticket.title}")
+                    show(ticket.id, 0, str(R.string.notif_new_incident), "${ticket.categoryName}: ${ticket.title}")
                 }
                 return@forEach
             }
 
             if (old.status != ticket.status && ticket.history.lastOrNull()?.byUid != myUid) {
-                val text = when (ticket.status) {
-                    IncidentStatus.OPEN -> if (old.status == IncidentStatus.RESOLVED) "A ocorrência foi reaberta." else "A ocorrência voltou a estar aberta."
-                    IncidentStatus.INFORMATION_REQUEST -> "Foi pedido um esclarecimento. Responda nas mensagens do ticket."
-                    IncidentStatus.IN_RESOLUTION -> "A equipa municipal iniciou a resolução."
-                    IncidentStatus.RESOLVED -> "O problema foi resolvido. Pode reabrir durante 5 dias."
-                    IncidentStatus.CLOSED -> "O ticket foi encerrado e arquivado."
-                }
-                show(ticket.id, 1, "\"${ticket.title}\" – ${statusName(ticket.status)}", text)
+                val text = str(
+                    when (ticket.status) {
+                        IncidentStatus.OPEN -> if (old.status == IncidentStatus.RESOLVED) R.string.notif_reopened else R.string.notif_open_again
+                        IncidentStatus.INFORMATION_REQUEST -> R.string.notif_info_request
+                        IncidentStatus.IN_RESOLUTION -> R.string.notif_in_resolution
+                        IncidentStatus.RESOLVED -> R.string.notif_resolved
+                        IncidentStatus.CLOSED -> R.string.notif_closed
+                    }
+                )
+                show(ticket.id, 1, "\"${ticket.title}\" – ${str(statusRes(ticket.status))}", text)
             }
 
             if (ticket.lastMessageAt > old.lastMessageAt && ticket.lastMessageAuthorId != myUid) {
-                show(ticket.id, 2, "Nova mensagem: ${ticket.title}", ticket.lastMessageText)
+                show(ticket.id, 2, str(R.string.notif_new_message, ticket.title), ticket.lastMessageText)
             }
 
             // Geofence de 20 m: o operador aproximou-se de uma ocorrência que o municípe acompanha
             if (myRole != UserRole.OPERATOR && ticket.operatorNearbyAt > old.operatorNearbyAt) {
                 show(
                     ticket.id, 4,
-                    "A equipa camarária está na área",
-                    "${ticket.operatorNearbyName.ifBlank { "Um operador" }} está junto de \"${ticket.title}\"."
+                    str(R.string.notif_team_nearby_title),
+                    str(R.string.notif_team_nearby_text, ticket.operatorNearbyName.ifBlank { str(R.string.notif_an_operator) }, ticket.title)
                 )
             }
         }
@@ -73,8 +77,8 @@ class TicketNotifier(
     fun notifyOperatorNearIncident(ticket: Incident, distanceMeters: Float) {
         show(
             ticket.id, 5,
-            "Ocorrência ativa nas proximidades",
-            "Está a %.0f m de \"%s\". Os autores foram avisados.".format(distanceMeters, ticket.title)
+            str(R.string.notif_operator_near_title),
+            str(R.string.notif_operator_near_text, distanceMeters, ticket.title)
         )
     }
 
@@ -83,8 +87,8 @@ class TicketNotifier(
         show(
             ticketId = "mfa",
             kind = 6,
-            title = "Código de Segurança CityFix",
-            text = "O teu código de confirmação é $code. Introduz este código na aplicação para entrar."
+            title = str(R.string.notif_mfa_title),
+            text = str(R.string.notif_mfa_text, code)
         )
     }
 
@@ -102,8 +106,8 @@ class TicketNotifier(
                 if (remaining in 1..DAY_MS && key !in alreadyNotified) {
                     show(
                         ticket.id, 3,
-                        "Último dia para reabrir",
-                        "\"${ticket.title}\" será encerrado definitivamente dentro de 24 horas."
+                        str(R.string.notif_last_day_title),
+                        str(R.string.notif_last_day_text, ticket.title)
                     )
                     alreadyNotified += key
                     changed = true
@@ -154,13 +158,7 @@ class TicketNotifier(
         manager.notify(ticketId.hashCode() * 31 + SUMMARY_ID, summary)
     }
 
-    private fun statusName(status: IncidentStatus) = when (status) {
-        IncidentStatus.OPEN -> "Aberto"
-        IncidentStatus.INFORMATION_REQUEST -> "Pedido de Informações"
-        IncidentStatus.IN_RESOLUTION -> "Em Resolução"
-        IncidentStatus.RESOLVED -> "Resolvido"
-        IncidentStatus.CLOSED -> "Encerrado"
-    }
+    private fun str(id: Int, vararg args: Any): String = context.getString(id, *args)
 
     companion object {
         const val EXTRA_TICKET_ID = "ticketId"

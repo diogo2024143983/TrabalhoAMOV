@@ -34,7 +34,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import pt.isec.amov.cityfix.R
 import androidx.compose.ui.unit.dp
 import pt.isec.amov.cityfix.model.CityFixUser
 import pt.isec.amov.cityfix.model.Incident
@@ -64,15 +68,15 @@ fun OperatorScreen(
     categories.firstOrNull { it.id == editingCategoryId }?.let { category ->
         AlertDialog(
             onDismissRequest = { editingCategoryId = null },
-            title = { Text("Editar categoria") },
-            text = { OutlinedTextField(value = editingName, onValueChange = { editingName = it }, label = { Text("Nome") }) },
+            title = { Text(stringResource(R.string.op_edit_category)) },
+            text = { OutlinedTextField(value = editingName, onValueChange = { editingName = it }, label = { Text(stringResource(R.string.op_category_name)) }) },
             confirmButton = {
                 Button(enabled = editingName.isNotBlank(), onClick = {
                     onRenameCategory(category, editingName)
                     editingCategoryId = null
-                }) { Text("Guardar") }
+                }) { Text(stringResource(R.string.btn_save)) }
             },
-            dismissButton = { TextButton(onClick = { editingCategoryId = null }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { editingCategoryId = null }) { Text(stringResource(R.string.btn_cancel)) } }
         )
     }
 
@@ -81,21 +85,21 @@ fun OperatorScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { Text("Painel de Gestão Operacional", style = MaterialTheme.typography.headlineSmall) }
+        item { Text(stringResource(R.string.op_title), style = MaterialTheme.typography.headlineSmall) }
 
-        item { Text("Munícipes Pendentes de Validação (${pendingCitizens.size})", style = MaterialTheme.typography.titleMedium) }
+        item { Text(stringResource(R.string.op_pending_citizens, pendingCitizens.size), style = MaterialTheme.typography.titleMedium) }
         if (pendingCitizens.isEmpty()) {
-            item { Text("Nenhum munícipe pendente de validação.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            item { Text(stringResource(R.string.op_no_pending), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         } else {
             items(pendingCitizens, key = { it.id }) { citizen ->
                 Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Nome: ${citizen.name}", fontWeight = FontWeight.Bold)
-                        Text("NIF: ${citizen.nif}  •  Tel: ${citizen.phone}")
-                        Text("Georreferenciação: ${citizen.georeference.ifBlank { "Não indicada" }}")
+                        Text(stringResource(R.string.profile_name, citizen.name), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.op_nif_phone, citizen.nif, citizen.phone))
+                        Text(stringResource(R.string.profile_address, citizen.georeference.ifBlank { stringResource(R.string.profile_not_given) }))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = { onValidateCitizen(citizen.id, true) }) { Text("Ativar Conta") }
-                            OutlinedButton(onClick = { onValidateCitizen(citizen.id, false) }) { Text("Manter Pendente") }
+                            Button(onClick = { onValidateCitizen(citizen.id, true) }) { Text(stringResource(R.string.op_activate)) }
+                            OutlinedButton(onClick = { onValidateCitizen(citizen.id, false) }) { Text(stringResource(R.string.op_keep_pending)) }
                         }
                     }
                 }
@@ -104,19 +108,19 @@ fun OperatorScreen(
 
         item {
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("Tipologias de Problemas", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.op_categories), style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = newCategoryName,
                     onValueChange = { newCategoryName = it },
                     modifier = Modifier.weight(1f),
-                    label = { Text("Nova categoria") }
+                    label = { Text(stringResource(R.string.op_new_category)) }
                 )
                 Spacer(Modifier.size(8.dp))
                 Button(enabled = newCategoryName.isNotBlank(), onClick = {
                     onAddCategory(newCategoryName)
                     newCategoryName = ""
-                }) { Text("Adicionar") }
+                }) { Text(stringResource(R.string.btn_add)) }
             }
         }
         items(categories, key = { it.id }) { category ->
@@ -125,14 +129,20 @@ fun OperatorScreen(
                 IconButton(onClick = {
                     editingName = category.name
                     editingCategoryId = category.id
-                }) { Icon(Icons.Default.Edit, contentDescription = "Editar ${category.name}") }
-                Switch(checked = category.active, onCheckedChange = { onToggleCategory(category) })
+                }) { Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.cd_edit_category, category.name)) }
+                // Descrição explícita: o leitor de ecrã anuncia a categoria e não apenas "interruptor"
+                val toggleDescription = stringResource(R.string.cd_category_active, category.name)
+                Switch(
+                    checked = category.active,
+                    onCheckedChange = { onToggleCategory(category) },
+                    modifier = Modifier.semantics { contentDescription = toggleDescription }
+                )
             }
         }
 
         item {
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("Ocorrências Ativas (${activeIncidents.size})", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.op_active_incidents, activeIncidents.size), style = MaterialTheme.typography.titleMedium)
         }
         items(activeIncidents, key = { it.id }) { incident ->
             IncidentCard(incident = incident, onClick = { onIncidentClick(incident.id) })

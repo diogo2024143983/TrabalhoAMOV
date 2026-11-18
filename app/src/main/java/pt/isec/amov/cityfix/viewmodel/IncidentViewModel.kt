@@ -23,6 +23,8 @@ import pt.isec.amov.cityfix.model.IncidentList
 import pt.isec.amov.cityfix.model.IncidentMessage
 import pt.isec.amov.cityfix.model.IncidentStatus
 import pt.isec.amov.cityfix.model.UserRole
+import pt.isec.amov.cityfix.R
+import pt.isec.amov.cityfix.utils.Strings
 import java.util.UUID
 import java.io.File
 
@@ -57,7 +59,8 @@ class IncidentViewModel(
     private val cloudRepository: CityFixFirebaseRepository,
     private val localRepository: CityFixLocalRepository,
     private val notifier: TicketNotifier,
-    private val mediaRepository: MediaRepository
+    private val mediaRepository: MediaRepository,
+    private val strings: Strings = Strings { id, _ -> id.toString() }
 ) : ViewModel() {
     private var ticketsListener: ListenerRegistration? = null
     private var categoriesListener: ListenerRegistration? = null
@@ -165,7 +168,7 @@ class IncidentViewModel(
                 ticketId = incident.id,
                 newStatus = previous,
                 actor = actorOf(user),
-                note = "Esclarecimento prestado",
+                note = strings.get(R.string.history_clarified),
                 extra = mapOf("infoRequestedByRole" to "", "statusBeforeInfoRequest" to "")
             )
         }
@@ -232,7 +235,7 @@ class IncidentViewModel(
     fun resolveWithProof(user: CityFixUser, proofUri: Uri, onComplete: (Boolean, String?) -> Unit) {
         val incident = _state.value.selectedIncident ?: return
         if (user.role != UserRole.OPERATOR || incident.status != IncidentStatus.IN_RESOLUTION) {
-            onComplete(false, "Só é possível resolver ocorrências em resolução.")
+            onComplete(false, strings.get(R.string.err_resolve_state))
             return
         }
         _state.update { it.copy(loading = true) }
@@ -240,7 +243,7 @@ class IncidentViewModel(
             val prepared = mediaRepository.prepare(proofUri, "proof")
             _state.update { it.copy(loading = false) }
             if (prepared == null) {
-                onComplete(false, "Não foi possível processar a prova de resolução.")
+                onComplete(false, strings.get(R.string.err_proof_processing))
                 return@launch
             }
             val localProofUrl = Uri.fromFile(File(prepared.mediaPath)).toString()
@@ -249,7 +252,7 @@ class IncidentViewModel(
                 ticketId = incident.id,
                 newStatus = IncidentStatus.RESOLVED,
                 actor = actorOf(user),
-                note = "Resolvido com prova ${if (prepared.isVideo) "em vídeo" else "fotográfica"}",
+                note = strings.get(if (prepared.isVideo) R.string.history_resolved_video else R.string.history_resolved_photo),
                 extra = mapOf(
                     "resolutionProofUrl" to localProofUrl,
                     "resolutionProofThumbUrl" to localThumbUrl,
@@ -266,15 +269,15 @@ class IncidentViewModel(
     fun reopenIncident(user: CityFixUser, reason: String, onResult: (Boolean, String?) -> Unit) {
         val incident = _state.value.selectedIncident
         when {
-            incident == null -> onResult(false, "Ocorrência não encontrada.")
-            !IncidentList.canReopen(incident) -> onResult(false, "Prazo de 5 dias expirado. A ocorrência encontra-se encerrada.")
-            reason.isBlank() -> onResult(false, "É obrigatório justificar o motivo da reabertura.")
+            incident == null -> onResult(false, strings.get(R.string.detail_not_found))
+            !IncidentList.canReopen(incident) -> onResult(false, strings.get(R.string.err_reopen_expired))
+            reason.isBlank() -> onResult(false, strings.get(R.string.err_reopen_reason))
             else -> {
                 cloudRepository.changeStatus(
                     ticketId = incident.id,
                     newStatus = IncidentStatus.OPEN,
                     actor = actorOf(user),
-                    note = "Reaberto: ${reason.trim()}",
+                    note = strings.get(R.string.history_reopened, reason.trim()),
                     // Novo ciclo de resolução: o início dos trabalhos anterior deixa de se aplicar
                     extra = mapOf("reopenReason" to reason.trim(), "resolvedAt" to null, "workStartedAt" to null),
                     onError = { e -> onResult(false, e.localizedMessage) }

@@ -69,8 +69,8 @@ class ProximityService : Service() {
     private fun promoteToForeground() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle("CityFix – Operador em serviço")
-            .setContentText("A detetar ocorrências ativas num raio de 20 m.")
+            .setContentTitle(getString(pt.isec.amov.cityfix.R.string.proximity_service_title))
+            .setContentText(getString(pt.isec.amov.cityfix.R.string.proximity_service_text))
             .setOngoing(true)
             .build()
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0
@@ -109,7 +109,7 @@ class ProximityService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "Serviço de proximidade", NotificationManager.IMPORTANCE_LOW)
+            val channel = NotificationChannel(CHANNEL_ID, getString(pt.isec.amov.cityfix.R.string.channel_proximity), NotificationManager.IMPORTANCE_LOW)
             getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
         }
     }

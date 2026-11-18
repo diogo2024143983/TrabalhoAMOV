@@ -183,33 +183,33 @@ fun MainScreen(app: CityFixApp, pendingTicketId: String?, onPendingTicketHandled
     pendingImpact?.let { magnitude ->
         AlertDialog(
             onDismissRequest = { pendingImpact = null },
-            title = { Text("Impacto na Via Detetado") },
-            text = { Text("Detetámos um solavanco forte na estrada (%.1f m/s²). Quer reportar um buraco ou anomalia neste local?".format(magnitude)) },
+            title = { Text(stringResource(R.string.impact_alert_title)) },
+            text = { Text(stringResource(R.string.impact_alert_message_value, magnitude)) },
             confirmButton = {
                 TextButton(onClick = {
                     impactMagnitudeForReport = magnitude
                     pendingImpact = null
                     navController.navigate(ReportIncidentRoute(fromImpact = true)) { launchSingleTop = true }
-                }) { Text("Reportar") }
+                }) { Text(stringResource(R.string.btn_report_hazard)) }
             },
-            dismissButton = { TextButton(onClick = { pendingImpact = null }) { Text("Ignorar") } }
+            dismissButton = { TextButton(onClick = { pendingImpact = null }) { Text(stringResource(R.string.btn_dismiss)) } }
         )
     }
 
     if (showBackgroundRationale) {
         AlertDialog(
             onDismissRequest = { showBackgroundRationale = false },
-            title = { Text("Localização em segundo plano") },
-            text = { Text("Para avisar os munícipes quando está a menos de 20 m de uma ocorrência, mesmo com a app fechada, o CityFix precisa da opção \"Permitir sempre\".") },
+            title = { Text(stringResource(R.string.bg_location_title)) },
+            text = { Text(stringResource(R.string.bg_location_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showBackgroundRationale = false
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         backgroundLocationRequest.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                     }
-                }) { Text("Continuar") }
+                }) { Text(stringResource(R.string.btn_continue)) }
             },
-            dismissButton = { TextButton(onClick = { showBackgroundRationale = false }) { Text("Agora não") } }
+            dismissButton = { TextButton(onClick = { showBackgroundRationale = false }) { Text(stringResource(R.string.btn_not_now)) } }
         )
     }
 
@@ -297,11 +297,12 @@ fun MainScreen(app: CityFixApp, pendingTicketId: String?, onPendingTicketHandled
                     val reportVm: ReportIncidentViewModel = viewModel(viewModelStoreOwner = backStack, factory = ReportIncidentViewModelFactory(app))
                     val formState by reportVm.formState.collectAsStateWithLifecycle()
                     val route = backStack.toRoute<ReportIncidentRoute>()
+                    val gpsMessage = stringResource(R.string.report_gps_ok)
                     LaunchedEffect(route.fromImpact) {
                         if (route.fromImpact) {
                             reportVm.prefillFromImpact(incidentState.activeCategories, impactMagnitudeForReport)
                             LocationTracker.currentLocation(context)?.let {
-                                reportVm.onLocationSelected(it.latitude, it.longitude, "Localização obtida por GPS.")
+                                reportVm.onLocationSelected(it.latitude, it.longitude, gpsMessage)
                             }
                         }
                     }
@@ -336,6 +337,7 @@ fun MainScreen(app: CityFixApp, pendingTicketId: String?, onPendingTicketHandled
                     )
                 }
                 composable<EditProfileRoute> { backStack ->
+                    val profileUpdatedMessage = stringResource(R.string.profile_updated)
                     val editVm: EditProfileViewModel = viewModel(viewModelStoreOwner = backStack, factory = EditProfileViewModelFactory(app, user))
                     val editState by editVm.editState.collectAsStateWithLifecycle()
                     EditProfileScreen(
@@ -347,7 +349,7 @@ fun MainScreen(app: CityFixApp, pendingTicketId: String?, onPendingTicketHandled
                         onSave = {
                             editVm.save { updated ->
                                 authVm.onUserUpdated(updated)
-                                showMessage("Perfil atualizado com sucesso!")
+                                showMessage(profileUpdatedMessage)
                                 navController.popBackStack()
                             }
                         }
@@ -425,7 +427,7 @@ private fun CityFixDrawerContent(
                     if (!user.photoUrl.isNullOrBlank()) {
                         AsyncImage(
                             model = user.photoUrl,
-                            contentDescription = "Foto de perfil",
+                            contentDescription = stringResource(R.string.cd_profile_photo),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
@@ -544,10 +546,10 @@ private fun MainTopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         navigationIcon = {
             if (destination.isTopLevel()) {
-                IconButton(onClick = onOpenDrawer) { Icon(Icons.Default.Menu, contentDescription = "Menu") }
+                IconButton(onClick = onOpenDrawer) { Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.cd_menu)) }
             } else {
                 IconButton(onClick = { navController.navigateUp() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                 }
             }
         },

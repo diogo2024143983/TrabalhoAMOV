@@ -34,13 +34,20 @@ class AuthViewModel(
     init {
         // Sessão guardada em DataStore: restaura o perfil sem esperar pela rede
         viewModelScope.launch {
-            localRepository.loadUser()?.let { saved -> _state.update { it.copy(user = saved) } }
-        }
-        val uid = cloudRepository.currentUserId
-        if (uid != null) {
-            observeUser(uid)
-        } else {
-            continueAsGuest()
+            // Sessão iniciada só com a palavra-passe (app fechada no passo do código MFA): não é aceite
+            if (cloudRepository.currentUserId != null && localRepository.isMfaPending()) {
+                cloudRepository.logout()
+                localRepository.setMfaPending(false)
+                localRepository.clearUser()
+            } else {
+                localRepository.loadUser()?.let { saved -> _state.update { it.copy(user = saved) } }
+            }
+            val uid = cloudRepository.currentUserId
+            if (uid != null) {
+                observeUser(uid)
+            } else {
+                continueAsGuest()
+            }
         }
     }
 

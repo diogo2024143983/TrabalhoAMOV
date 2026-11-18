@@ -71,12 +71,14 @@ Aplicação Android para comunicação e acompanhamento de ocorrências no espa�
 - **Persistência local**: instância única de DataStore, leituras como `Flow` com tratamento de `IOException` e escritas `suspend` (aula de Storage).
 - **Trabalho em segundo plano**: `CoroutineWorker` para o envio de multimédia e para o ciclo de vida dos tickets.
 - **Regras de segurança**: `firestore.rules` e `storage.rules` (cada utilizador só escreve em `users/{uid}/`; anexos de tickets limitados a imagem/vídeo e a 20 MB), seguindo a P11.
+- **Internacionalização**: inglês por omissão (`values`) e português (`values-pt`), com plurais e `locales_config` (idioma escolhido por app em Definições, Android 13+). Os ecrãs usam `stringResource`; os ViewModels recebem uma interface `Strings` injetada pelas factories, para não dependerem de `Context`.
+- **Acessibilidade**: descrições em todos os ícones e imagens, interruptores com rótulo anunciado pelo leitor de ecrã (`LabeledSwitch` com `toggleable`), alvos de toque de pelo menos 48 dp e cartões com etiqueta de ação.
+- **MFA**: código de 6 dígitos enviado por notificação local após a palavra-passe (simulação do 2.º fator). Se a app for fechada antes de o código ser confirmado, a sessão é terminada no arranque seguinte (estado guardado no DataStore).
+- **Testes unitários** (`app/src/test`): regras de `IncidentList` (visibilidade, agrupamento a 10 m, estatísticas, reabertura, ordenação), validadores (NIF, telefone, email, perímetro de 10 km) e `ImpactDetector`.
 
 ## Estado atual
 
-O projeto compila e foi testado no emulador com uma conta de operador. Foi percorrido o ciclo completo: criação da ocorrência com fotografia, pedido de informações, início da resolução, registo do início dos trabalhos, resolução com prova, reabertura e histórico.
-
-**Limitação conhecida:** o Firebase Storage não está ativo no projeto Firebase (`cityfix-a454e`), pelo que o envio de multimédia devolve 404. O `MediaUploadWorker` volta a tentar automaticamente, e a ocorrência continua a funcionar sem a multimédia. Para resolver, é preciso ativar o Storage na Consola do Firebase, o que exige o plano Blaze.
+O projeto compila, passa o lint e os 21 testes unitários, e foi testado no emulador com contas de operador e de munícipe: ciclo completo do ticket, envio de multimédia para o Firebase Storage (plano Blaze), notificações FCM enviadas pela consola, deteção de impactos, recuperação de palavra-passe, MFA e mudança de idioma entre inglês e português.
 
 ## Como executar
 
@@ -110,13 +112,9 @@ firebase deploy --only firestore:rules,storage
 
 ## Trabalho ainda pendente
 
-- Ativar o Firebase Storage e validar o envio de multimédia de ponta a ponta.
-- Notificações push remotas (exigem Cloud Functions ou servidor); atualmente são locais.
-- Restrição do munícipe anónimo a 10 km da Praça da República.
-- Autenticação com duplo fator (MFA).
-- Internacionalização: inglês por omissão e português como língua adicional (os textos ainda estão no código).
-- Revisão de acessibilidade.
-- Testes unitários e de UI.
+- Notificações push enviadas pelo servidor (Cloud Functions); as de mudança de estado são geradas localmente.
+- MFA real por SMS (Firebase Identity Platform); atualmente é simulado por notificação local.
+- Testes de UI (Compose).
 - Relatório técnico em PDF.
 
 ## Estrutura principal

@@ -46,6 +46,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import pt.isec.amov.cityfix.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import pt.isec.amov.cityfix.model.BusinessRules
@@ -85,7 +88,7 @@ fun IncidentDetailScreen(
 ) {
     if (incident == null) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Ocorrência não encontrada.")
+            Text(stringResource(R.string.detail_not_found))
         }
         return
     }
@@ -112,11 +115,11 @@ fun IncidentDetailScreen(
 
     if (showReopenDialog) {
         TextInputDialog(
-            title = "Reabrir Ocorrência (Prazo de 5 dias)",
-            label = "Motivo da Reabertura *",
+            title = stringResource(R.string.detail_reopen_title),
+            label = stringResource(R.string.detail_reopen_reason),
             value = reopenReason,
             onValueChange = { reopenReason = it },
-            confirmLabel = "Confirmar Reabertura",
+            confirmLabel = stringResource(R.string.detail_reopen_confirm),
             onConfirm = {
                 onReopen(reopenReason)
                 reopenReason = ""
@@ -128,11 +131,11 @@ fun IncidentDetailScreen(
 
     if (showInfoDialog) {
         TextInputDialog(
-            title = if (isOperator) "Pedir informações ao munícipe" else "Pedir esclarecimentos à autarquia",
-            label = if (isOperator) "Que informação é necessária? *" else "Ex.: estimativa temporal, procedimento *",
+            title = stringResource(if (isOperator) R.string.detail_info_title_operator else R.string.detail_info_title_citizen),
+            label = stringResource(if (isOperator) R.string.detail_info_label_operator else R.string.detail_info_label_citizen),
             value = infoText,
             onValueChange = { infoText = it },
-            confirmLabel = "Enviar pedido",
+            confirmLabel = stringResource(R.string.detail_info_send),
             onConfirm = {
                 onRequestInfo(infoText)
                 infoText = ""
@@ -177,8 +180,8 @@ fun IncidentDetailScreen(
                 val waitingForMe = (byOperator && !isOperator) || (!byOperator && isOperator)
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
                     Text(
-                        text = (if (byOperator) "A autarquia pediu informações complementares." else "O munícipe pediu esclarecimentos.") +
-                            if (waitingForMe) " Responda nas mensagens abaixo." else " A aguardar resposta.",
+                        text = stringResource(if (byOperator) R.string.detail_info_by_operator else R.string.detail_info_by_citizen) + " " +
+                            stringResource(if (waitingForMe) R.string.detail_info_reply_below else R.string.detail_info_waiting),
                         modifier = Modifier.padding(12.dp)
                     )
                 }
@@ -201,7 +204,7 @@ fun IncidentDetailScreen(
             (incident.resolutionProofUrl.isNotBlank() || incident.proofPending)
         ) {
             item {
-                Text("Prova de Resolução", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.detail_resolution_proof), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(6.dp))
                 IncidentPhotoGallery(
                     media = listOfNotNull(
@@ -219,7 +222,7 @@ fun IncidentDetailScreen(
                 Button(onClick = onSupport, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.ThumbUp, contentDescription = null)
                     Spacer(Modifier.size(8.dp))
-                    Text("Apoiar Ocorrência (${incident.supporterIds.size} apoios)")
+                    Text(pluralStringResource(R.plurals.detail_support, incident.supporterIds.size, incident.supporterIds.size))
                 }
             }
         }
@@ -245,7 +248,7 @@ fun IncidentDetailScreen(
         if (canAskClarification) {
             item {
                 OutlinedButton(onClick = { showInfoDialog = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Pedir esclarecimentos à autarquia")
+                    Text(stringResource(R.string.detail_info_title_citizen))
                 }
             }
         }
@@ -257,7 +260,7 @@ fun IncidentDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Reabrir Ocorrência (até 5 dias após a resolução)")
+                    Text(stringResource(R.string.detail_reopen_button))
                 }
             }
         }
@@ -265,7 +268,7 @@ fun IncidentDetailScreen(
         if (!isAnonymous && incident.history.isNotEmpty()) {
             item {
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                Text("Histórico", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.detail_history), style = MaterialTheme.typography.titleMedium)
             }
             items(incident.history.reversed()) { entry ->
                 Column(Modifier.fillMaxWidth()) {
@@ -286,19 +289,19 @@ fun IncidentDetailScreen(
         if (!isAnonymous) {
             item {
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                Text("Comunicação com os Serviços Camarários", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.messages_section_title), style = MaterialTheme.typography.titleMedium)
             }
             items(messages, key = { it.id }) { msg -> MessageBubble(msg) }
             item {
                 if (isClosed) {
-                    Text("Ticket encerrado: não admite novas mensagens.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.detail_closed_no_messages), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(
                             value = messageText,
                             onValueChange = { messageText = it },
                             modifier = Modifier.weight(1f),
-                            placeholder = { Text("Escreva uma mensagem...") }
+                            placeholder = { Text(stringResource(R.string.send_message_placeholder)) }
                         )
                         Spacer(Modifier.size(8.dp))
                         Button(
@@ -307,7 +310,7 @@ fun IncidentDetailScreen(
                                 onSendMessage(messageText)
                                 messageText = ""
                             }
-                        ) { Text("Enviar") }
+                        ) { Text(stringResource(R.string.btn_send)) }
                     }
                 }
             }
@@ -341,21 +344,21 @@ fun IncidentDetailScreen(
 @Composable
 private fun IncidentInfoBlock(incident: Incident, isAnonymous: Boolean, isOperator: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("Categoria: ${incident.categoryName.ifBlank { "Geral" }}")
-        Text("Situação: ${incidentSituationLabel(incident.situation)}")
-        Text("Estado: ${incidentStatusLabel(incident.status)}")
+        Text(stringResource(R.string.detail_category, incident.categoryName.ifBlank { stringResource(R.string.category_general) }))
+        Text(stringResource(R.string.detail_situation, incidentSituationLabel(incident.situation)))
+        Text(stringResource(R.string.detail_status, incidentStatusLabel(incident.status)))
         if (!isAnonymous) {
-            Text("Autor: ${incident.authorName}")
-            if (isOperator && incident.authorPhone.isNotBlank()) Text("Contacto Autor: ${incident.authorPhone}")
-            Text("Localização: ${incident.locationAddress.ifBlank { "%.5f, %.5f".format(incident.latitude, incident.longitude) }}")
+            Text(stringResource(R.string.detail_author, incident.authorName))
+            if (isOperator && incident.authorPhone.isNotBlank()) Text(stringResource(R.string.detail_author_contact, incident.authorPhone))
+            Text(stringResource(R.string.detail_location, incident.locationAddress.ifBlank { "%.5f, %.5f".format(incident.latitude, incident.longitude) }))
         } else {
-            Text("Autor e morada ocultos (Perfil Anónimo)", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.detail_anonymous_hidden), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (incident.reopenReason.isNotBlank()) {
-            Text("Motivo de Reabertura: ${incident.reopenReason}", color = MaterialTheme.colorScheme.error)
+            Text(stringResource(R.string.detail_reopen_reason_value, incident.reopenReason), color = MaterialTheme.colorScheme.error)
         }
         if (incident.status == IncidentStatus.RESOLVED && incident.resolvedAt != null) {
-            Text("Encerramento automático em ${remainingUntilClose(incident.resolvedAt)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.detail_auto_close, remainingUntilClose(incident.resolvedAt)), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -368,7 +371,7 @@ private fun NavigateButton(incident: Incident) {
         val uri = Uri.parse("geo:${incident.latitude},${incident.longitude}?q=${incident.latitude},${incident.longitude}(${Uri.encode(incident.title)})")
         context.startActivity(Intent(Intent.ACTION_VIEW, uri))
     }) {
-        Text("Navegar até ao local")
+        Text(stringResource(R.string.detail_navigate))
     }
 }
 
@@ -385,35 +388,35 @@ private fun OperatorActions(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        Text("Gestão Operacional", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.detail_operator_title), style = MaterialTheme.typography.titleMedium)
         when (incident.status) {
             IncidentStatus.OPEN -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onRequestInfo) { Text("Pedir Info") }
-                Button(onClick = { onChangeStatus(IncidentStatus.IN_RESOLUTION) }) { Text("Iniciar Resolução") }
+                OutlinedButton(onClick = onRequestInfo) { Text(stringResource(R.string.detail_request_info)) }
+                Button(onClick = { onChangeStatus(IncidentStatus.IN_RESOLUTION) }) { Text(stringResource(R.string.detail_start_resolution)) }
             }
             IncidentStatus.INFORMATION_REQUEST ->
-                Button(onClick = { onChangeStatus(IncidentStatus.IN_RESOLUTION) }) { Text("Iniciar Resolução") }
+                Button(onClick = { onChangeStatus(IncidentStatus.IN_RESOLUTION) }) { Text(stringResource(R.string.detail_start_resolution)) }
             IncidentStatus.IN_RESOLUTION -> {
-                incident.workStartedAt?.let { Text("Trabalhos iniciados a ${formatDate(it)}") }
+                incident.workStartedAt?.let { Text(stringResource(R.string.detail_work_started, formatDate(it))) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (incident.workStartedAt == null) {
-                        Button(onClick = onRegisterWorkStart) { Text("Registar início dos trabalhos") }
+                        Button(onClick = onRegisterWorkStart) { Text(stringResource(R.string.detail_register_work)) }
                     }
-                    OutlinedButton(onClick = onRequestInfo) { Text("Pedir Info") }
+                    OutlinedButton(onClick = onRequestInfo) { Text(stringResource(R.string.detail_request_info)) }
                 }
                 OutlinedButton(onClick = onPickProof) {
-                    Text(if (proofSelected) "Prova selecionada ✓ (alterar)" else "Anexar foto/vídeo do trabalho concluído *")
+                    Text(stringResource(if (proofSelected) R.string.detail_proof_selected else R.string.detail_attach_proof))
                 }
                 Button(onClick = onResolve, enabled = proofSelected && !loading) {
                     if (loading) {
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.size(8.dp))
                     }
-                    Text("Marcar como Resolvido")
+                    Text(stringResource(R.string.detail_mark_resolved))
                 }
             }
-            IncidentStatus.RESOLVED -> Text("Aguarda o prazo de reabertura. O ticket é encerrado automaticamente após 5 dias.")
-            IncidentStatus.CLOSED -> Text("Esta ocorrência está definitivamente encerrada.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            IncidentStatus.RESOLVED -> Text(stringResource(R.string.detail_waiting_reopen))
+            IncidentStatus.CLOSED -> Text(stringResource(R.string.detail_closed_final), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -458,12 +461,14 @@ private fun TextInputDialog(
             )
         },
         confirmButton = { Button(enabled = value.isNotBlank(), onClick = onConfirm) { Text(confirmLabel) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } }
     )
 }
 
+@Composable
 private fun remainingUntilClose(resolvedAt: Long): String {
     val remaining = (resolvedAt + BusinessRules.REOPEN_WINDOW_MS - System.currentTimeMillis()).coerceAtLeast(0)
-    val hours = remaining / (60 * 60 * 1000)
-    return if (hours >= 24) "${hours / 24} dia(s) e ${hours % 24} h" else "$hours h"
+    val hours = (remaining / (60 * 60 * 1000)).toInt()
+    return if (hours >= 24) stringResource(R.string.time_days_hours, hours / 24, hours % 24)
+    else stringResource(R.string.time_hours, hours)
 }

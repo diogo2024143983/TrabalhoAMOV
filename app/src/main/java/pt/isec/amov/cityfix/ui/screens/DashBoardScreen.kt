@@ -16,13 +16,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import pt.isec.amov.cityfix.R
 import androidx.compose.ui.unit.dp
 import pt.isec.amov.cityfix.model.CityFixUser
 import pt.isec.amov.cityfix.model.IncidentList
 import pt.isec.amov.cityfix.model.UserRole
 import pt.isec.amov.cityfix.ui.theme.CityFixTheme
-import java.util.Locale
 
 /** Dashboard sem estado: tempo médio de reparação, total e % de ocorrências ativas (enunciado, I.1.A). */
 @Composable
@@ -45,15 +46,15 @@ fun DashboardScreen(
             ) {
                 Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = if (user.role == UserRole.ANONYMOUS) "Melhore a sua cidade" else "Olá, ${user.name}!",
+                        text = if (user.role == UserRole.ANONYMOUS) stringResource(R.string.dash_improve_city) else stringResource(R.string.dash_hello, user.name),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
                         text = when {
-                            user.role == UserRole.ANONYMOUS -> "Consulte o estado de resolução das ocorrências na sua cidade."
-                            user.role == UserRole.CITIZEN && !user.active -> "A tua conta está a aguardar validação do NIF por um operador municipal."
-                            else -> "Reporte ocorrências públicas ou acompanhe a evolução das que já registou."
+                            user.role == UserRole.ANONYMOUS -> stringResource(R.string.dash_anonymous_message)
+                            user.role == UserRole.CITIZEN && !user.active -> stringResource(R.string.account_pending_warning)
+                            else -> stringResource(R.string.dash_user_message)
                         },
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                     )
@@ -63,16 +64,16 @@ fun DashboardScreen(
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                StatCard("Total", incidents.totalCount.toString(), MaterialTheme.colorScheme.primaryContainer, Modifier.weight(1f))
+                StatCard(stringResource(R.string.dash_total_tickets), incidents.totalCount.toString(), MaterialTheme.colorScheme.primaryContainer, Modifier.weight(1f))
                 StatCard(
-                    "% Ativas",
+                    stringResource(R.string.dash_active_percentage),
                     "${incidents.activePercentage}% (${incidents.activeCount})",
                     MaterialTheme.colorScheme.secondaryContainer,
                     Modifier.weight(1f)
                 )
                 StatCard(
-                    "Tempo Médio",
-                    incidents.averageRepairDays.takeIf { it > 0.0 }?.let { String.format(Locale.getDefault(), "%.1f d", it) } ?: "--",
+                    stringResource(R.string.dash_avg_resolution_time),
+                    incidents.averageRepairDays.takeIf { it > 0.0 }?.let { stringResource(R.string.dash_days_format, it) } ?: "--",
                     Color(0xFFF4E4C8),
                     Modifier.weight(1f)
                 )
@@ -86,12 +87,12 @@ fun DashboardScreen(
                 shape = MaterialTheme.shapes.medium
             ) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Ocorrências da Comunidade", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.dash_community_title), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Consulte os problemas ativos e acompanhe a resolução em tempo real.",
+                        stringResource(R.string.dash_community_message),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Button(onClick = onIncidents) { Text("Explorar ocorrências") }
+                    Button(onClick = onIncidents) { Text(stringResource(R.string.dash_explore)) }
                 }
             }
         }

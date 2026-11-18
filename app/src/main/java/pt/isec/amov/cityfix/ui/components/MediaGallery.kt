@@ -41,7 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.res.stringResource
 import coil3.compose.AsyncImage
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.MediaAttachment
 
 /**
@@ -84,7 +86,7 @@ fun IncidentPhotoGallery(
                 } else {
                     AsyncImage(
                         model = item.url,
-                        contentDescription = "Fotografia em ecrã inteiro",
+                        contentDescription = stringResource(R.string.cd_fullscreen_photo),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize().padding(16.dp)
                     )
@@ -96,7 +98,7 @@ fun IncidentPhotoGallery(
                         .align(Alignment.TopEnd)
                         .padding(16.dp)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Fechar", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_close), tint = Color.White, modifier = Modifier.size(32.dp))
                 }
             }
         }
@@ -123,12 +125,12 @@ fun IncidentPhotoGallery(
             ) {
                 AsyncImage(
                     model = item.thumbnailUrl.ifBlank { if (item.isVideo) null else item.url },
-                    contentDescription = if (item.isVideo) "Vídeo da ocorrência" else "Fotografia da ocorrência",
+                    contentDescription = stringResource(if (item.isVideo) R.string.cd_incident_video else R.string.cd_incident_photo),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
                 if (item.isVideo) {
-                    Icon(Icons.Default.PlayCircle, contentDescription = "Reproduzir vídeo", tint = Color.White, modifier = Modifier.size(40.dp))
+                    Icon(Icons.Default.PlayCircle, contentDescription = stringResource(R.string.cd_play_video), tint = Color.White, modifier = Modifier.size(40.dp))
                 }
             }
         }
@@ -142,7 +144,7 @@ fun PendingMediaCard(modifier: Modifier = Modifier) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.CloudUpload, contentDescription = null)
             Spacer(Modifier.size(8.dp))
-            Text("Multimédia em envio (será carregada quando houver rede)…")
+            Text(stringResource(R.string.media_uploading))
         }
     }
 }
@@ -159,12 +161,13 @@ fun AttachmentPreviewRow(
             Box(modifier = Modifier.size(88.dp).clip(RoundedCornerShape(12.dp)).background(Color.Black)) {
                 AsyncImage(
                     model = uri,
-                    contentDescription = "Anexo selecionado",
+                    contentDescription = stringResource(R.string.cd_selected_attachment),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                IconButton(onClick = { onRemove(uri) }, modifier = Modifier.align(Alignment.TopEnd).size(32.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Remover anexo", tint = Color.White)
+                // Sem tamanho forçado: o IconButton mantém o alvo de toque mínimo de 48 dp (acessibilidade)
+                IconButton(onClick = { onRemove(uri) }, modifier = Modifier.align(Alignment.TopEnd)) {
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_remove_attachment), tint = Color.White)
                 }
             }
         }

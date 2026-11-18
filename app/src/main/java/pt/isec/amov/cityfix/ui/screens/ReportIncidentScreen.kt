@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,13 +44,16 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
+import pt.isec.amov.cityfix.R
 import pt.isec.amov.cityfix.model.BusinessRules
 import pt.isec.amov.cityfix.model.IncidentCategory
 import pt.isec.amov.cityfix.model.IncidentSituation
 import pt.isec.amov.cityfix.ui.components.AttachmentPreviewRow
 import pt.isec.amov.cityfix.ui.components.CategoryDropdown
 import pt.isec.amov.cityfix.ui.components.IncidentMap
+import pt.isec.amov.cityfix.ui.components.LabeledSwitch
 import pt.isec.amov.cityfix.ui.components.incidentSituationLabel
 import pt.isec.amov.cityfix.ui.theme.CityFixTheme
 import pt.isec.amov.cityfix.utils.LocationTracker
@@ -84,6 +86,13 @@ fun ReportIncidentScreen(
     val scope = rememberCoroutineScope()
     var pendingCaptureUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     val remainingSlots = BusinessRules.MAX_ATTACHMENTS - state.attachments.size
+    // Textos usados dentro de callbacks (lidos aqui para acompanharem mudanças de idioma)
+    val msgGpsOk = stringResource(R.string.report_gps_ok)
+    val msgGpsUnavailable = stringResource(R.string.report_gps_unavailable)
+    val msgGpsNoPermission = stringResource(R.string.report_gps_no_permission)
+    val msgAddressFound = stringResource(R.string.report_address_found)
+    val msgAddressNotFound = stringResource(R.string.report_address_not_found)
+    val msgMapPicked = stringResource(R.string.report_map_picked)
 
     // Galeria: até 3 fotos/vídeos (FixIt Project Bridge, P09)
     val multiplePicker = rememberLauncherForActivityResult(
@@ -110,21 +119,21 @@ fun ReportIncidentScreen(
         if (result.values.any { it }) {
             scope.launch {
                 val loc = LocationTracker.currentLocation(context)
-                if (loc != null) onLocationSelected(loc.latitude, loc.longitude, "Localização GPS obtida.")
-                else onLocationMessage("GPS indisponível. Toque no mapa para escolher o local.")
+                if (loc != null) onLocationSelected(loc.latitude, loc.longitude, msgGpsOk)
+                else onLocationMessage(msgGpsUnavailable)
             }
         } else {
-            onLocationMessage("Sem permissão de localização. Toque no mapa para escolher o local.")
+            onLocationMessage(msgGpsNoPermission)
         }
     }
 
     val formContent: @Composable (Modifier) -> Unit = { formModifier ->
         Column(modifier = formModifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Registar Ocorrência", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.report_title), style = MaterialTheme.typography.headlineSmall)
             OutlinedTextField(
                 value = state.title,
                 onValueChange = onTitleChange,
-                label = { Text("Título da ocorrência *") },
+                label = { Text(stringResource(R.string.title_label) + " *") },
                 isError = state.titleError != null,
                 supportingText = state.titleError?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth()
@@ -132,7 +141,7 @@ fun ReportIncidentScreen(
             OutlinedTextField(
                 value = state.description,
                 onValueChange = onDescriptionChange,
-                label = { Text("Descrição detalhada *") },
+                label = { Text(stringResource(R.string.description_label) + " *") },
                 isError = state.descriptionError != null,
                 supportingText = state.descriptionError?.let { { Text(it) } },
                 minLines = 3,
@@ -145,7 +154,7 @@ fun ReportIncidentScreen(
                 error = state.categoryError,
                 modifier = Modifier.fillMaxWidth()
             )
-            Text("Situação do problema:", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.situation_label), style = MaterialTheme.typography.labelMedium)
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -162,16 +171,16 @@ fun ReportIncidentScreen(
                 scope.launch {
                     val coords = LocationTracker.geocodeAddress(context, state.locationAddress)
                     if (coords != null) {
-                        onLocationSelected(coords.first, coords.second, "Morada encontrada no mapa!")
+                        onLocationSelected(coords.first, coords.second, msgAddressFound)
                     } else {
-                        onLocationMessage("Morada não encontrada. Tente ajustar ou toque no mapa.")
+                        onLocationMessage(msgAddressNotFound)
                     }
                 }
             }
             OutlinedTextField(
                 value = state.locationAddress,
                 onValueChange = onAddressChange,
-                label = { Text("Morada / Localização *") },
+                label = { Text(stringResource(R.string.location_label) + " *") },
                 isError = state.addressError != null,
                 supportingText = state.addressError?.let { { Text(it) } },
                 singleLine = true,
@@ -179,7 +188,7 @@ fun ReportIncidentScreen(
                 keyboardActions = KeyboardActions(onSearch = { searchAddress() }),
                 trailingIcon = {
                     IconButton(onClick = searchAddress) {
-                        Icon(Icons.Default.Search, contentDescription = "Procurar morada no mapa")
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.cd_search_address))
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -190,19 +199,19 @@ fun ReportIncidentScreen(
                 }) {
                     Icon(Icons.Default.MyLocation, contentDescription = null)
                     Spacer(Modifier.size(6.dp))
-                    Text("Usar GPS")
+                    Text(stringResource(R.string.report_use_gps))
                 }
                 state.locationMessage?.let {
                     Text(it, modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodySmall)
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = state.isPublic, onCheckedChange = onPublicChange)
-                Spacer(Modifier.size(8.dp))
-                Text(if (state.isPublic) "Ocorrência pública" else "Ocorrência privada")
-            }
+            LabeledSwitch(
+                text = stringResource(if (state.isPublic) R.string.scope_public else R.string.scope_private),
+                checked = state.isPublic,
+                onCheckedChange = onPublicChange
+            )
 
-            Text("Fotografias / vídeos * (${state.attachments.size}/${BusinessRules.MAX_ATTACHMENTS})", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.report_attachments, state.attachments.size, BusinessRules.MAX_ATTACHMENTS), style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     enabled = remainingSlots > 0,
@@ -213,12 +222,12 @@ fun ReportIncidentScreen(
                 ) {
                     Icon(Icons.Default.PhotoLibrary, contentDescription = null)
                     Spacer(Modifier.size(6.dp))
-                    Text("Galeria")
+                    Text(stringResource(R.string.choose_gallery))
                 }
                 OutlinedButton(enabled = remainingSlots > 0, onClick = { cameraPermission.launch(Manifest.permission.CAMERA) }) {
                     Icon(Icons.Default.PhotoCamera, contentDescription = null)
                     Spacer(Modifier.size(6.dp))
-                    Text("Câmara")
+                    Text(stringResource(R.string.take_photo))
                 }
             }
             if (state.attachments.isNotEmpty()) {
@@ -227,14 +236,14 @@ fun ReportIncidentScreen(
             state.attachmentsError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
 
             Button(onClick = onSubmit, enabled = !state.isSaving, modifier = Modifier.fillMaxWidth()) {
-                if (state.isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text("Submeter")
+                if (state.isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(stringResource(R.string.submit_incident))
             }
         }
     }
 
     val mapContent: @Composable (Modifier) -> Unit = { mapModifier ->
         Column(modifier = mapModifier) {
-            Text("Toque no mapa para indicar o local", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.report_tap_map), style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(4.dp))
             Card(Modifier.fillMaxSize()) {
                 IncidentMap(
@@ -242,7 +251,7 @@ fun ReportIncidentScreen(
                     longitude = state.longitude,
                     zoom = 16.0,
                     modifier = Modifier.fillMaxSize(),
-                    onLocationPicked = { lat, lon -> onLocationSelected(lat, lon, "Local escolhido no mapa.") }
+                    onLocationPicked = { lat, lon -> onLocationSelected(lat, lon, msgMapPicked) }
                 )
             }
         }

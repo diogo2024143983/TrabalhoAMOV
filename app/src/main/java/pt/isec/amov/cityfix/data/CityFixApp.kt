@@ -25,7 +25,8 @@ class CityFixApp : Application() {
         // osmdroid exige um user agent identificado para descarregar os mosaicos do OpenStreetMap
         Configuration.getInstance().userAgentValue = packageName
         CityFixMessagingService.createChannel(
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager,
+            this
         )
         TicketLifecycleWorker.schedule(this)
         TicketLifecycleWorker.runNow(this)
